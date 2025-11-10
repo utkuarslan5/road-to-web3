@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>utkulabs • LabMint Sepolia Viewer</title>
+    <meta
+      name="description"
+      content="Public, read-only viewer for the utkulabs LabMint ERC‑721 contract on Sepolia via Alchemy."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script
+      src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"
+      integrity="sha384-+8+VoeAQMtkXnUXJVI5395SljYViVtr0obJrixYHqqqBsirq9Rhp1y0ViQyr/Azy"
+      crossorigin="anonymous"
+      defer
+    ></script>
+    <script type="module" src="app.js" defer></script>
+  </head>
+  <body>
+    <header class="hero">
+      <div>
+        <p class="eyebrow">utkulabs • Sepolia</p>
+        <h1>LabMint NFT Viewer</h1>
+        <p class="lede">
+          Inspect any token from the fixed LabMint contract on Sepolia. Reads all metadata directly from the
+          Alchemy RPC and resolves assets through IPFS gateways — no wallets, no secrets.
+        </p>
+      </div>
+      <dl class="contract-callouts">
+        <div>
+          <dt>Contract</dt>
+          <dd>
+            <code id="contract-address">0xc84a1D9044Ceb74EC8C17FfD465f1af6Fe0e53DF</code>
+          </dd>
+        </div>
+        <div>
+          <dt>Network</dt>
+          <dd>Sepolia (11155111)</dd>
+        </div>
+        <div>
+          <dt>RPC</dt>
+          <dd><code>Alchemy • HTTPS</code></dd>
+        </div>
+        <div>
+          <dt>API Access</dt>
+          <dd>Read-only · ERC-721</dd>
+        </div>
+      </dl>
+    </header>
+
+    <main class="main">
+      <section class="panel">
+        <h2>Lookup a Token</h2>
+        <form id="token-form" class="token-form">
+          <label class="field">
+            <span>Token ID</span>
+            <input type="number" id="token-id" name="tokenId" min="0" placeholder="e.g. 5" required />
+            <small>Prefill via URL using <code>?tid=5</code></small>
+          </label>
+          <button class="btn primary" type="submit">Fetch token data</button>
+        </form>
+        <p id="status" class="status">Enter a token ID to begin.</p>
+      </section>
+
+      <section class="panel panel--split" aria-live="polite">
+        <div class="preview" id="preview">
+          <div class="preview__media" id="nft-media" role="img" aria-label="NFT preview">
+            <span>No media loaded</span>
+          </div>
+          <div class="preview__details">
+            <p class="label">Owner</p>
+            <a id="owner" class="mono" target="_blank" rel="noreferrer">—</a>
+            <p class="label">tokenURI</p>
+            <a id="token-uri" class="mono" target="_blank" rel="noreferrer">—</a>
+          </div>
+        </div>
+
+        <div class="metadata">
+          <h3 id="nft-title">Waiting for token…</h3>
+          <p id="nft-description" class="muted"></p>
+
+          <dl class="meta-grid">
+            <div>
+              <dt>Contract Name</dt>
+              <dd id="contract-name">—</dd>
+            </div>
+            <div>
+              <dt>Symbol</dt>
+              <dd id="contract-symbol">—</dd>
+            </div>
+            <div>
+              <dt>Token ID</dt>
+              <dd id="token-id-label">—</dd>
+            </div>
+          </dl>
+
+          <div id="attributes" class="attributes" hidden>
+            <h4>Attributes</h4>
+            <ul id="attribute-list"></ul>
+          </div>
+
+          <details class="json-block" open>
+            <summary>Raw metadata JSON</summary>
+            <pre id="metadata-json">{}</pre>
+          </details>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>
+        Built for utkulabs — drop these static files onto GitHub Pages at
+        <a href="https://utkulabs.github.io/sepolia-nft-viewer/" target="_blank" rel="noreferrer"
+          >utkulabs.github.io/sepolia-nft-viewer</a
+        >.
+      </p>
+    </footer>
+  </body>
+</html>
