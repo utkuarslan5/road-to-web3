@@ -8,7 +8,7 @@ Static, read-only explorer for the LabMint ERC-721 contract on the Sepolia testn
 | --- | --- |
 | Network | Sepolia (chain id 11155111) |
 | RPC | `https://eth-sepolia.g.alchemy.com/v2/KP7J8NeqBmLe2H7v1waHF` |
-| Contract | `0xc84a1D9044Ceb74EC8C17FfD465f1af6Fe0e53DF` |
+| Contract | `0xc84a****53DF` (masked) |
 | Interface | `name()`, `symbol()`, `ownerOf(uint256)`, `tokenURI(uint256)` |
 
 ## Features
@@ -16,6 +16,7 @@ Static, read-only explorer for the LabMint ERC-721 contract on the Sepolia testn
 - Hardcoded to the utkulabs LabMint contract — just enter a token ID.
 - Resolves `tokenURI` metadata, shows image/video, description, attributes + raw JSON.
 - Owner + tokenURI links jump out to Etherscan/IPFS.
+- Automatically prefetches up to four minted tokens and displays them in a gallery on load.
 - Prefill token via query string (`?tid=5`) for quick sharing.
 - Pure HTML/CSS/JS + [ethers.js v6.13](https://docs.ethers.org) — safe for static hosting.
 
