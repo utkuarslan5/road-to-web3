@@ -1,6 +1,6 @@
 # utkulabs Sepolia NFT Viewer
 
-Static, read-only explorer for the LabMint ERC-721 contract on the Sepolia testnet. The page speaks directly to an Alchemy RPC endpoint, pulls metadata via `tokenURI`, resolves IPFS assets, and renders everything in a GitHub Pages-friendly layout.
+Live “trophy” page for the LabMint ERC-721 deployment on Sepolia. On every load it replays the exact `eth_call` against Alchemy, decodes the tokenURI for token #0, resolves the IPFS metadata, and caches the snapshot in the browser for fast re-visits.
 
 ## Contract + Network
 
@@ -9,24 +9,21 @@ Static, read-only explorer for the LabMint ERC-721 contract on the Sepolia testn
 | Network | Sepolia (chain id 11155111) |
 | RPC | `https://eth-sepolia.g.alchemy.com/v2/KP7J8NeqBmLe2H7v1waHF` |
 | Contract | `0xc84a****53DF` (masked) |
-| Interface | `name()`, `symbol()`, `ownerOf(uint256)`, `tokenURI(uint256)` |
+| Method showcased | `tokenURI(0)` decoded from `eth_call` |
 
 ## Features
 
-- Hardcoded to the utkulabs LabMint contract — just enter a token ID.
-- Resolves `tokenURI` metadata, shows image/video, description, attributes + raw JSON.
-- Owner + tokenURI links jump out to Etherscan/IPFS.
-- Automatically prefetches up to four minted tokens and displays them in a gallery on load.
-- Prefill token via query string (`?tid=5`) for quick sharing.
-- Pure HTML/CSS/JS + [ethers.js v6.13](https://docs.ethers.org) — safe for static hosting.
+- Automatically POSTs to the Alchemy Sepolia RPC, decodes the ABI string result, and loads metadata/images via an IPFS gateway.
+- Trophy layout with hero callouts, NFT media, attribute grid, and raw JSON/RPC proof blocks.
+- LocalStorage cache so the last successful snapshot renders instantly while a fresh RPC call runs in the background.
 
 ## Usage
 
 1. Serve the folder locally or open `index.html` directly in any modern browser.
-2. (Optional) Append `?tid=<id>` to the URL so the viewer loads a token on arrival.
-3. Enter a token ID and click **Fetch token data**. Metadata is fetched live from Alchemy.
+2. The app immediately reaches out to Alchemy, decodes the result, and renders the NFT once metadata is fetched.
+3. Re-open the page later to see the cached state while the background refresh runs.
 
-> No private keys or write transactions are involved; this viewer performs read-only RPC calls.
+> Only read-only RPC calls are made; no wallets, signatures, or private data are involved.
 
 ## Deploying to GitHub Pages
 
@@ -42,7 +39,7 @@ Optional extras:
 ## Maintenance
 
 - Update `index.html`, `styles.css`, or `app.js`, commit, and push — Pages redeploys automatically.
-- If the contract/RPC ever change, edit the constants at the top of `app.js`.
+- To showcase a different token/function, adjust the constants at the top of `app.js` and redeploy.
 
 ## Local development tips
 
