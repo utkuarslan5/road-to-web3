@@ -14,8 +14,9 @@ Live “trophy” page for the LabMint ERC-721 deployment on Sepolia. On every l
 ## Features
 
 - Automatically POSTs to the Alchemy Sepolia RPC, decodes the ABI string result, and loads metadata/images via an IPFS gateway.
-- Trophy layout with hero callouts, NFT media, attribute grid, and raw JSON/RPC proof blocks.
+- Trophy layout with hero callouts, NFT media, attribute grid, and a polished facts panel summarizing the contract.
 - LocalStorage cache so the last successful snapshot renders instantly while a fresh RPC call runs in the background.
+- Multi-gateway IPFS fallback (ipfs.io, Cloudflare, nftstorage.link, Pinata, cf-ipfs) plus path heuristics (`metadata.json`, `token.json`, `?filename=`) so metadata loads even if a gateway changes its routing.
 
 ## Usage
 

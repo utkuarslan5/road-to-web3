@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>utkulabs • Sepolia Trophy</title>
+    <title>utkulabs · Sepolia Trophy</title>
     <meta
       name="description"
       content="Live Sepolia trophy that replays the LabMint tokenURI eth_call via Alchemy and renders the decoded NFT."
@@ -18,13 +18,11 @@
   </head>
   <body>
     <header class="hero">
-      <div>
-        <p class="eyebrow">utkulabs • Sepolia</p>
-        <h1>LabMint Trophy Token</h1>
+      <div class="hero__copy">
+        <p class="eyebrow">utkulabs · Sepolia testnet</p>
+        <h1>LabMint NFT</h1>
         <p class="lede">
-          This page freezes the on-chain response from a single
-          <code>eth_call</code> against the LabMint ERC-721 contract on Sepolia, decodes the tokenURI, resolves the IPFS
-          metadata, and presents the resulting NFT as a public trophy.
+          This is my Web3 project and my first smart contract — the LabMint ERC-721 deployed to Sepolia using the Alchemy RPC. The NFT minted here serves as a trophy and verifiable proof-of-deployment.
         </p>
       </div>
       <dl class="callouts">
@@ -42,130 +40,52 @@
         </div>
         <div>
           <dt>Token</dt>
-          <dd>#0 (decoded via eth_call)</dd>
+          <dd>#0 · tokenURI()</dd>
         </div>
       </dl>
     </header>
 
-    <main class="main">
-      <section class="panel artifact">
-        <div class="artifact__media">
-          <img
-            src="https://noble-copper-xerinae.myfilebase.com/ipfs/Qmem9Hwgw2Fy7eUfvAT5yQqJaAvvEQbLTQaUgJSaVf3Vw6"
-            alt="Deployed NFT by utkulabs"
-            loading="lazy"
-          />
+    <main class="content">
+      <section class="panel status-panel">
+        <p id="status" class="status">Connecting to Alchemy RPC…</p>
+      </section>
+
+      <section class="panel stage" aria-live="polite">
+        <div class="stage__media">
+          <div id="media-skeleton" class="skeleton">Fetching media…</div>
+          <img id="nft-image" class="is-hidden" alt="NFT media" loading="lazy" />
         </div>
-        <div class="artifact__body">
-          <p class="label">ipfs://Qmcx4ao1kPazvKJFT3BGAPq25RdDCMwcrGZy5tYp8jk4C6</p>
-          <h2>Deployed NFT by utkulabs</h2>
-          <p class="muted">
-            Dynamic NFT representing utkulabs’ successful ERC-721 deployment on the Sepolia testnet using Alchemy,
-            Remix, OpenZeppelin, and Solidity.
-          </p>
+        <div class="stage__body">
+          <div class="stage__uri">
+            <span class="label">tokenURI</span>
+            <a id="token-uri" class="mono" target="_blank" rel="noreferrer">Decoding…</a>
+          </div>
+          <h2 id="nft-name">Syncing metadata…</h2>
+          <p id="nft-description" class="muted"></p>
           <dl class="meta-grid">
-            <div>
-              <dt>Owner</dt>
-              <dd><code>ownerOf(0)</code> — Trophy capture</dd>
-            </div>
             <div>
               <dt>Contract Type</dt>
               <dd>ERC-721</dd>
             </div>
             <div>
               <dt>External URL</dt>
-              <dd><a href="https://alchemy.com" target="_blank" rel="noreferrer">alchemy.com ↗</a></dd>
+              <dd>
+                <a id="external-link" href="#" target="_blank" rel="noreferrer">Awaiting metadata…</a>
+              </dd>
             </div>
           </dl>
-
-          <div class="attributes">
+          <section id="attributes" class="attributes" hidden>
             <h3>Attributes</h3>
-            <ul>
-              <li><span>Platform</span><strong>Alchemy</strong></li>
-              <li><span>Framework</span><strong>OpenZeppelin</strong></li>
-              <li><span>IDE</span><strong>Remix</strong></li>
-              <li><span>Language</span><strong>Solidity</strong></li>
-              <li><span>Contract</span><strong>ERC721</strong></li>
-              <li><span>Network</span><strong>Sepolia</strong></li>
-              <li><span>Deployment Skill</span><strong>88</strong></li>
-              <li><span>Code Efficiency</span><strong>92%</strong></li>
-              <li><span>Version</span><strong>1</strong></li>
-            </ul>
-          </div>
+            <ul id="attributes-list"></ul>
+          </section>
         </div>
-      </section>
-
-      <section class="panel">
-        <div class="panel__header">
-          <h2>Raw Metadata</h2>
-          <a class="btn ghost small" href="https://ipfs.io/ipfs/Qmcx4ao1kPazvKJFT3BGAPq25RdDCMwcrGZy5tYp8jk4C6" target="_blank" rel="noreferrer"
-            >Open on IPFS ↗</a
-          >
-        </div>
-        <pre class="code-block">{
-  "description": "Dynamic NFT representing utkulabs’ successful ERC-721 deployment on the Sepolia testnet using Alchemy, Remix, OpenZeppelin, and Solidity.",
-  "external_url": "https://alchemy.com",
-  "image": "https://noble-copper-xerinae.myfilebase.com/ipfs/Qmem9Hwgw2Fy7eUfvAT5yQqJaAvvEQbLTQaUgJSaVf3Vw6",
-  "name": "Deployed NFT by utkulabs",
-  "attributes": [
-    { "trait_type": "Platform", "value": "Alchemy" },
-    { "trait_type": "Framework", "value": "OpenZeppelin" },
-    { "trait_type": "IDE", "value": "Remix" },
-    { "trait_type": "Language", "value": "Solidity" },
-    { "trait_type": "Contract Type", "value": "ERC721" },
-    { "trait_type": "Network", "value": "Sepolia" },
-    { "display_type": "boost_number", "trait_type": "Deployment Skill", "value": 88 },
-    { "display_type": "boost_percentage", "trait_type": "Code Efficiency", "value": 92 },
-    { "display_type": "number", "trait_type": "Version", "value": 1 }
-  ]
-}
-</pre>
-      </section>
-
-      <section class="panel">
-        <h2>RPC Proof</h2>
-        <p class="muted">
-          Captured via <code>eth_call</code> on the Alchemy Sepolia RPC. The encoded response decodes to the IPFS hash
-          shown above.
-        </p>
-        <div class="code-columns">
-          <div>
-            <h3>Request</h3>
-            <pre class="code-block">curl -X POST https://eth-sepolia.g.alchemy.com/v2/KP7J8NeqBmLe2H7v1waHF \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "method": "eth_call",
-    "params": [{
-      "to": "0xc84a1D9044Ceb74EC8C17FfD465f1af6Fe0e53DF",
-      "data": "0xc87b56dd0000000000000000000000000000000000000000000000000000000000000000"
-    }, "latest"],
-    "id": 0
-  }'
-</pre>
-          </div>
-          <div>
-            <h3>Response</h3>
-            <pre class="code-block">{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": "0x0000000000000000000000000000000000000000000000000000000000000020\
-000000000000000000000000000000000000000000000000000000000000002e\
-516d637834616f316b50617a764b4a46543342474150713235526444434d7763\
-72475a7935745970386a6b344336000000000000000000000000000000000000"
-}
-</pre>
-          </div>
-        </div>
-        <p class="muted">
-          Decoding the dynamic string (offset <code>0x20</code>, length <code>0x2e</code>) yields
-          <code>Qmcx4ao1kPazvKJFT3BGAPq25RdDCMwcrGZy5tYp8jk4C6</code> → <code>ipfs://</code> URI.
-        </p>
       </section>
     </main>
 
     <footer class="footer">
-      <p>utkulabs - 2025</p>
+      <p>UtkuLabs 2025.</p>
     </footer>
+
+    <script type="module" src="app.js"></script>
   </body>
 </html>

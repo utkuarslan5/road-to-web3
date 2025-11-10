@@ -4,6 +4,14 @@ const config = {
   tokenId: 0,
   callData: "0xc87b56dd0000000000000000000000000000000000000000000000000000000000000000",
   ipfsGateway: "https://ipfs.io/ipfs/",
+  ipfsGateways: [
+    "https://ipfs.io/ipfs/",
+    "https://cloudflare-ipfs.com/ipfs/",
+    "https://nftstorage.link/ipfs/",
+    "https://gateway.pinata.cloud/ipfs/",
+    "https://cf-ipfs.com/ipfs/",
+  ],
+  ipfsPathFallbacks: ["metadata.json", "token.json"],
   cacheKey: "utkulabs:trophy",
 };
 
@@ -17,9 +25,6 @@ const els = {
   externalLink: document.getElementById("external-link"),
   attributesSection: document.getElementById("attributes"),
   attributesList: document.getElementById("attributes-list"),
-  metadataJson: document.getElementById("metadata-json"),
-  metadataLink: document.getElementById("metadata-link"),
-  rpcResult: document.getElementById("rpc-result"),
 };
 
 const state = {
@@ -36,10 +41,22 @@ function init() {
   }
   fetchLiveData().catch((err) => {
     console.error(err);
+    const metadataFailure = err?.stage === "metadata";
+    const message = err?.message ?? String(err);
     if (!cached) {
-      setStatus("Failed to fetch from RPC. Please refresh to try again.", "error");
+      setStatus(
+        metadataFailure
+          ? `tokenURI fetched but metadata is unreachable (${message}).`
+          : `Failed to fetch from RPC: ${message}.`,
+        "error",
+      );
     } else {
-      setStatus("Using cached data. Refresh to retry RPC fetch.", "error");
+      setStatus(
+        metadataFailure
+          ? `Using cached data. Metadata refresh failed (${message}).`
+          : `Using cached data. Refresh to retry RPC fetch (last error: ${message}).`,
+        "error",
+      );
     }
   });
 }
@@ -76,8 +93,9 @@ async function fetchLiveData() {
 
   setStatus("Decoding tokenURI and loading metadata…");
   const tokenUri = decodeAbiString(body.result);
-  const metadataUrl = resolveIpfs(tokenUri);
-  const metadata = await fetchMetadata(metadataUrl);
+  const metadataSources = buildGatewayUrls(tokenUri);
+  const metadataUrl = metadataSources[0] || tokenUri;
+  const metadata = await fetchMetadata(metadataSources);
 
   const snapshot = {
     fetchedAt: Date.now(),
@@ -110,25 +128,39 @@ function decodeAbiString(hexString) {
 }
 
 function resolveIpfs(uri = "") {
-  if (!uri) return "";
-  if (uri.startsWith("ipfs://")) {
-    return `${config.ipfsGateway}${uri.replace("ipfs://", "")}`;
-  }
-  return uri;
+  return buildGatewayUrls(uri)[0] || "";
 }
 
-async function fetchMetadata(url) {
-  if (!url) throw new Error("Missing metadata URL");
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) {
-    throw new Error(`Metadata fetch failed (${res.status})`);
+async function fetchMetadata(urls) {
+  const attempts = (Array.isArray(urls) ? urls : [urls]).filter(Boolean);
+  if (!attempts.length) {
+    const err = new Error("Missing metadata URL");
+    err.stage = "metadata";
+    throw err;
   }
-  return res.json();
+
+  const errors = [];
+  for (const url of attempts) {
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) {
+        errors.push(`${url} → HTTP ${res.status}`);
+        continue;
+      }
+      return res.json();
+    } catch (err) {
+      errors.push(`${url} → ${err.message}`);
+    }
+  }
+
+  const error = new Error(errors.join(" | ") || "Metadata fetch failed");
+  error.stage = "metadata";
+  throw error;
 }
 
 function renderSnapshot(snapshot) {
   state.rendered = true;
-  const { tokenUri, metadata, metadataUrl, rpcResult } = snapshot;
+  const { tokenUri, metadata, metadataUrl } = snapshot;
 
   els.tokenUri.textContent = tokenUri;
   els.tokenUri.href = resolveIpfs(tokenUri);
@@ -151,11 +183,6 @@ function renderSnapshot(snapshot) {
   }
 
   renderAttributes(metadata?.attributes);
-
-  els.metadataJson.textContent = JSON.stringify(metadata ?? {}, null, 2);
-  els.metadataLink.href = metadataUrl || "#";
-
-  els.rpcResult.textContent = formatRpcResult(rpcResult);
 }
 
 function renderAttributes(attributes) {
@@ -179,27 +206,62 @@ function renderAttributes(attributes) {
   });
 }
 
-function formatRpcResult(result) {
-  if (!result) return "(no result)";
-  return `{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": "${chunkHex(result)}"
-}`;
-}
-
-function chunkHex(hex) {
-  const clean = hex.startsWith("0x") ? hex.slice(2) : hex;
-  const segments = clean.match(/.{1,64}/g) || [];
-  return `0x${segments.join("\\n")}`;
-}
-
 function readableHostname(url) {
   try {
     return new URL(url).hostname;
   } catch (err) {
     return url;
   }
+}
+
+function buildGatewayUrls(uri = "") {
+  if (!uri) return [];
+  if (/^https?:\/\//i.test(uri)) {
+    return [uri];
+  }
+  if (uri.startsWith("ipfs://") || isLikelyCid(uri)) {
+    const path = uri.replace(/^ipfs:\/\//i, "").replace(/^\/+/, "");
+    const gateways = config.ipfsGateways?.length ? config.ipfsGateways : [config.ipfsGateway];
+    const pathVariants = buildIpfsPathVariants(path);
+    const urls = [];
+    gateways.filter(Boolean).forEach((base) => {
+      const normalizedBase = base.replace(/\/$/, "");
+      pathVariants.forEach((variant) => {
+        urls.push(`${normalizedBase}/${variant}`);
+      });
+    });
+    return Array.from(new Set(urls));
+  }
+  return [uri];
+}
+
+function buildIpfsPathVariants(path = "") {
+  if (!path) return [];
+  const variants = new Set([path]);
+  const cleanPath = path.replace(/^\//, "");
+  variants.add(cleanPath);
+
+  const fallbackFiles = config.ipfsPathFallbacks || [];
+  fallbackFiles.forEach((file) => {
+    if (!file) return;
+    variants.add(`${cleanPath}/${file}`);
+  });
+
+  if (!/\.json($|\?)/i.test(cleanPath)) {
+    variants.add(`${cleanPath}.json`);
+  }
+
+  variants.add(`${cleanPath}?filename=metadata.json`);
+  variants.add(`${cleanPath}?filename=token.json`);
+
+  return Array.from(variants);
+}
+
+function isLikelyCid(value = "") {
+  if (!value) return false;
+  if (value.startsWith("ipfs://")) return true;
+  // CIDv0 starts with Qm, CIDv1 (base32) starts with bafy...
+  return /^(?:Qm[1-9A-HJ-NP-Za-km-z]{44,}|bafy[0-9a-z]{50,})$/i.test(value);
 }
 
 function setStatus(message, variant = "info") {
