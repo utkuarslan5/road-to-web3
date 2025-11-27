@@ -1,0 +1,22 @@
+# Node modules
+week2/BmC-contract/node_modules
+
+# Compilation output
+/dist
+
+# pnpm deploy output
+/bundle
+
+# Hardhat Build Artifacts
+/artifacts
+
+# Hardhat compilation (v2) support directory
+/cache
+
+# Typechain output
+/types
+
+# Hardhat coverage reports
+/coverage
+
+week2/BmC-contract/package-lock.json
