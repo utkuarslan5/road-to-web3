@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>utkulabs · Sepolia Trophy</title>
+    <title>utkulabs · Onchain Meta Page</title>
     <meta
       name="description"
-      content="Live Sepolia trophy that replays the LabMint tokenURI eth_call via Alchemy and renders the decoded NFT."
+      content="One-page hub for my Road to Web3 builds: the live LabMint NFT on Sepolia plus a Buy Me a Coffee dapp you can try right now."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -19,16 +19,41 @@
   <body>
     <header class="hero">
       <div class="hero__copy">
-        <p class="eyebrow">utkulabs · Sepolia testnet</p>
-        <h1>LabMint NFT</h1>
+        <p class="eyebrow">utkulabs · onchain build log</p>
+        <h1>Road to Web3 meta page</h1>
         <p class="lede">
-          This is my Web3 project and my first smart contract — the LabMint ERC-721 deployed to Sepolia using the Alchemy RPC. The NFT minted here serves as a trophy and verifiable proof-of-deployment.
+          A single page for everything I'm shipping: the live LabMint Sepolia NFT plus a Buy Me a Coffee dapp wired to
+          the deployed contract.
         </p>
+        <div class="hero__cta">
+          <a class="pill" href="#trophy">Jump to NFT</a>
+          <a class="pill pill--ghost" href="#coffee">Buy me a coffee</a>
+        </div>
       </div>
       <dl class="callouts">
         <div>
-          <dt>Contract</dt>
-          <dd><code>0xc84a****53DF</code></dd>
+          <dt>LabMint Trophy</dt>
+          <dd>
+            <a
+              class="mono"
+              href="https://sepolia.etherscan.io/address/0xc84a1D9044Ceb74EC8C17FfD465f1af6Fe0e53DF"
+              target="_blank"
+              rel="noreferrer"
+              >0xc84a…53DF</a
+            >
+          </dd>
+        </div>
+        <div>
+          <dt>Coffee Contract</dt>
+          <dd>
+            <a
+              class="mono"
+              href="https://sepolia.etherscan.io/address/0x86a531F9Fa82E220B28c854C900178c37CFC9ab5"
+              target="_blank"
+              rel="noreferrer"
+              >0x86a5…9ab5</a
+            >
+          </dd>
         </div>
         <div>
           <dt>Chain</dt>
@@ -38,19 +63,52 @@
           <dt>RPC</dt>
           <dd>Alchemy HTTPS</dd>
         </div>
-        <div>
-          <dt>Token</dt>
-          <dd>#0 · tokenURI()</dd>
-        </div>
       </dl>
     </header>
 
     <main class="content">
+      <section class="panel overview">
+        <div class="overview__grid">
+          <div class="meta-card">
+            <p class="label">Meta</p>
+            <h2>Everything in one place</h2>
+            <p class="muted">
+              This GitHub Page tracks my Road to Web3 course work: deployed contracts, live reads, and interactive
+              dapps you can try immediately.
+            </p>
+          </div>
+          <div class="meta-card">
+            <p class="label">Live data</p>
+            <h3>Onchain-first UI</h3>
+            <p class="muted">
+              tokenURI is fetched from Sepolia on load and decoded from ABI; coffee memos come straight from the
+              deployed contract.
+            </p>
+          </div>
+          <div class="meta-card">
+            <p class="label">Try it</p>
+            <h3>Buy me a coffee</h3>
+            <p class="muted">
+              Connect any Sepolia wallet to send a small tip and leave a memo. The board refreshes once your tx is
+              mined.
+            </p>
+          </div>
+        </div>
+      </section>
+
       <section class="panel status-panel">
         <p id="status" class="status">Connecting to Alchemy RPC…</p>
       </section>
 
-      <section class="panel stage" aria-live="polite">
+      <section id="trophy" class="panel stage" aria-live="polite">
+        <div class="section-heading">
+          <div>
+            <p class="label">LabMint trophy</p>
+            <h2>Sepolia ERC-721 #0</h2>
+            <p class="muted">Live pull of the tokenURI for the LabMint NFT deployed via Alchemy RPC.</p>
+          </div>
+          <div class="pill pill--ghost">Auto-refresh on load</div>
+        </div>
         <div class="stage__media">
           <div id="media-skeleton" class="skeleton">Fetching media…</div>
           <img id="nft-image" class="is-hidden" alt="NFT media" loading="lazy" />
@@ -60,9 +118,9 @@
             <span class="label">tokenURI</span>
             <a id="token-uri" class="mono" target="_blank" rel="noreferrer">Decoding…</a>
           </div>
-          <h2 id="nft-name">Syncing metadata…</h2>
+          <h3 id="nft-name">Syncing metadata…</h3>
           <p id="nft-description" class="muted"></p>
-          <dl class="meta-grid">
+          <dl class="meta-grid meta-grid--compact">
             <div>
               <dt>Contract Type</dt>
               <dd>ERC-721</dd>
@@ -80,12 +138,71 @@
           </section>
         </div>
       </section>
+
+      <section id="coffee" class="panel coffee">
+        <div class="section-heading">
+          <div>
+            <p class="label">Support</p>
+            <h2>Buy me a coffee</h2>
+            <p class="muted">Contract on Sepolia. Connect, tip in ETH, and leave a memo that posts to the board.</p>
+          </div>
+          <div class="pill contract-pill">
+            <span>Contract</span>
+            <a
+              id="coffee-contract-link"
+              class="mono"
+              href="https://sepolia.etherscan.io/address/0x86a531F9Fa82E220B28c854C900178c37CFC9ab5"
+              target="_blank"
+              rel="noreferrer"
+              >0x86a5…9ab5</a
+            >
+          </div>
+        </div>
+
+        <div class="coffee__grid">
+          <form id="coffee-form" class="coffee__form">
+            <div class="field">
+              <label for="coffee-name">Name</label>
+              <input id="coffee-name" name="name" type="text" placeholder="Anon supporter" autocomplete="off" />
+            </div>
+            <div class="field">
+              <label for="coffee-message">Message</label>
+              <textarea id="coffee-message" name="message" rows="3" placeholder="Leave a short note"></textarea>
+            </div>
+            <div class="field field--split">
+              <div>
+                <label for="coffee-amount">Amount (ETH)</label>
+                <input id="coffee-amount" name="amount" type="number" min="0.0001" step="0.0001" value="0.001" />
+              </div>
+              <div class="field__actions">
+                <button type="button" id="coffee-connect" class="button">Connect wallet</button>
+                <button type="submit" id="coffee-send" class="button button--primary" disabled>Send coffee</button>
+              </div>
+            </div>
+            <p id="coffee-status" class="microcopy muted">Connect your wallet to send a coffee.</p>
+          </form>
+
+          <div class="coffee__memos">
+            <div class="memos__header">
+              <div>
+                <p class="label">Memo board</p>
+                <h3>Recent supporters</h3>
+              </div>
+              <button type="button" id="coffee-refresh" class="button button--ghost">Refresh</button>
+            </div>
+            <ul id="memos-list" class="memos">
+              <li class="muted">Loading memos…</li>
+            </ul>
+          </div>
+        </div>
+      </section>
     </main>
 
     <footer class="footer">
-      <p>UtkuLabs 2025.</p>
+      <p>UtkuLabs 2025 · built for Road to Web3.</p>
     </footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
     <script type="module" src="app.js"></script>
   </body>
 </html>

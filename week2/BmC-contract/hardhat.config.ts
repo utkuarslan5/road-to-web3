@@ -1,4 +1,6 @@
 import hardhatEthers from "@nomicfoundation/hardhat-ethers";
+import hardhatEthers from "@nomicfoundation/hardhat-ethers";
+import hardhatMocha from "@nomicfoundation/hardhat-mocha";
 import { defineConfig } from "hardhat/config";
 import type { NetworksUserConfig } from "hardhat/types";
 import * as dotenv from "dotenv";
@@ -26,6 +28,6 @@ export default defineConfig({
   solidity: {
     version: "0.8.28",
   },
-  plugins: [hardhatEthers],
+  plugins: [hardhatEthers, hardhatMocha],
   networks,
 });

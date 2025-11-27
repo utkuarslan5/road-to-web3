@@ -15,6 +15,22 @@ const config = {
   cacheKey: "utkulabs:trophy",
 };
 
+const coffeeConfig = {
+  contractAddress: "0x86a531F9Fa82E220B28c854C900178c37CFC9ab5",
+  chainId: 11155111n,
+  chainIdHex: "0xaa36a7",
+  chainName: "Sepolia",
+  explorer: "https://sepolia.etherscan.io",
+  rpcUrl: "https://eth-sepolia.g.alchemy.com/v2/KP7J8NeqBmLe2H7v1waHF",
+  defaultAmountEth: "0.001",
+};
+
+const coffeeAbi = [
+  "function buyCoffee(string name,string message) public payable",
+  "function memos() view returns (tuple(address supporter,uint256 timestamp,string name,string message)[])",
+  "function owner() view returns (address)",
+];
+
 const els = {
   status: document.getElementById("status"),
   mediaSkeleton: document.getElementById("media-skeleton"),
@@ -27,13 +43,34 @@ const els = {
   attributesList: document.getElementById("attributes-list"),
 };
 
-const state = {
-  rendered: false,
+const coffeeEls = {
+  form: document.getElementById("coffee-form"),
+  nameInput: document.getElementById("coffee-name"),
+  messageInput: document.getElementById("coffee-message"),
+  amountInput: document.getElementById("coffee-amount"),
+  connectBtn: document.getElementById("coffee-connect"),
+  sendBtn: document.getElementById("coffee-send"),
+  status: document.getElementById("coffee-status"),
+  memosList: document.getElementById("memos-list"),
+  refreshBtn: document.getElementById("coffee-refresh"),
+  contractLink: document.getElementById("coffee-contract-link"),
 };
 
-init();
+const state = {
+  rendered: false,
+  coffee: {
+    readProvider: null,
+    readContract: null,
+    signer: null,
+    contract: null,
+    account: "",
+  },
+};
 
-function init() {
+initTrophy();
+initCoffee();
+
+function initTrophy() {
   const cached = readCache();
   if (cached) {
     renderSnapshot(cached);
@@ -285,5 +322,228 @@ function readCache() {
   } catch (err) {
     console.warn("Failed to parse cache", err);
     return null;
+  }
+}
+
+function initCoffee() {
+  if (!coffeeEls.status) return;
+
+  if (coffeeEls.contractLink) {
+    coffeeEls.contractLink.href = `${coffeeConfig.explorer}/address/${coffeeConfig.contractAddress}`;
+    coffeeEls.contractLink.textContent = shortenAddress(coffeeConfig.contractAddress);
+  }
+
+  setCoffeeStatus(`Contract live on ${coffeeConfig.chainName}. Connect your wallet to send a coffee.`);
+
+  coffeeEls.refreshBtn?.addEventListener("click", refreshMemos);
+  coffeeEls.connectBtn?.addEventListener("click", connectCoffeeWallet);
+  coffeeEls.form?.addEventListener("submit", handleCoffeeSubmit);
+
+  try {
+    ensureEthers();
+    state.coffee.readProvider = new ethers.JsonRpcProvider(coffeeConfig.rpcUrl);
+    state.coffee.readContract = new ethers.Contract(
+      coffeeConfig.contractAddress,
+      coffeeAbi,
+      state.coffee.readProvider,
+    );
+    refreshMemos();
+  } catch (err) {
+    console.error(err);
+    setCoffeeStatus(`Unable to load memos: ${extractErrorMessage(err)}`, "error");
+  }
+}
+
+async function connectCoffeeWallet() {
+  if (typeof window === "undefined" || !window.ethereum) {
+    setCoffeeStatus("No injected wallet detected. Install MetaMask to send a coffee.", "error");
+    return;
+  }
+  ensureEthers();
+
+  try {
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const isCorrectNetwork = await ensureCorrectNetwork(provider);
+    if (!isCorrectNetwork) return;
+
+    const accounts = await provider.send("eth_requestAccounts", []);
+    if (!accounts?.length) {
+      setCoffeeStatus("Wallet connection was rejected.", "error");
+      return;
+    }
+
+    const signer = await provider.getSigner();
+    const address = await signer.getAddress();
+    state.coffee.signer = signer;
+    state.coffee.contract = new ethers.Contract(coffeeConfig.contractAddress, coffeeAbi, signer);
+    state.coffee.account = address;
+
+    if (coffeeEls.sendBtn) {
+      coffeeEls.sendBtn.disabled = false;
+    }
+    if (coffeeEls.connectBtn) {
+      coffeeEls.connectBtn.textContent = "Wallet connected";
+    }
+
+    setCoffeeStatus(`Connected as ${shortenAddress(address)} on ${coffeeConfig.chainName}.`);
+  } catch (err) {
+    console.error(err);
+    setCoffeeStatus(extractErrorMessage(err), "error");
+  }
+}
+
+async function ensureCorrectNetwork(provider) {
+  try {
+    const network = await provider.getNetwork();
+    if (network?.chainId === coffeeConfig.chainId) return true;
+
+    await provider.send("wallet_switchEthereumChain", [{ chainId: coffeeConfig.chainIdHex }]);
+    return true;
+  } catch (err) {
+    setCoffeeStatus(
+      `Switch to ${coffeeConfig.chainName} in your wallet to send a coffee. (${extractErrorMessage(err)})`,
+      "error",
+    );
+    return false;
+  }
+}
+
+async function handleCoffeeSubmit(event) {
+  event.preventDefault();
+  if (!state.coffee.contract) {
+    await connectCoffeeWallet();
+    if (!state.coffee.contract) return;
+  }
+
+  const name = (coffeeEls.nameInput?.value || "").trim() || "Anon";
+  const message = (coffeeEls.messageInput?.value || "").trim() || "☕️ Thanks!";
+  const amountRaw = (coffeeEls.amountInput?.value || coffeeConfig.defaultAmountEth).trim();
+  const parsedAmount = safeParseEther(amountRaw || coffeeConfig.defaultAmountEth);
+
+  if (!parsedAmount) {
+    setCoffeeStatus("Enter a valid ETH amount.", "error");
+    return;
+  }
+  if (parsedAmount <= 0n) {
+    setCoffeeStatus("Amount must be greater than 0.", "error");
+    return;
+  }
+
+  try {
+    if (coffeeEls.sendBtn) {
+      coffeeEls.sendBtn.disabled = true;
+    }
+    setCoffeeStatus("Sending coffee…");
+    const tx = await state.coffee.contract.buyCoffee(name, message, { value: parsedAmount });
+    setCoffeeStatus("Waiting for confirmation…");
+    await tx.wait();
+    setCoffeeStatus("Coffee sent! Thanks for the support.", "success");
+    if (coffeeEls.sendBtn) {
+      coffeeEls.sendBtn.disabled = false;
+    }
+    coffeeEls.form?.reset();
+    if (coffeeEls.amountInput) {
+      coffeeEls.amountInput.value = coffeeConfig.defaultAmountEth;
+    }
+    refreshMemos();
+  } catch (err) {
+    console.error(err);
+    if (coffeeEls.sendBtn) {
+      coffeeEls.sendBtn.disabled = false;
+    }
+    setCoffeeStatus(extractErrorMessage(err), "error");
+  }
+}
+
+async function refreshMemos() {
+  if (!state.coffee.readContract || !coffeeEls.memosList) return;
+  try {
+    const memos = await state.coffee.readContract.memos();
+    renderMemos(memos);
+    const allowStatusUpdate = coffeeEls.status?.dataset?.variant !== "success";
+    if (allowStatusUpdate) {
+      setCoffeeStatus(`Memo board synced from ${coffeeConfig.chainName}.`);
+    }
+  } catch (err) {
+    console.error(err);
+    setCoffeeStatus(`Unable to load memos: ${extractErrorMessage(err)}`, "error");
+  }
+}
+
+function renderMemos(memos) {
+  if (!coffeeEls.memosList) return;
+
+  coffeeEls.memosList.innerHTML = "";
+  if (!Array.isArray(memos) || memos.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "muted";
+    empty.textContent = "No memos yet. Be the first to buy a coffee.";
+    coffeeEls.memosList.appendChild(empty);
+    return;
+  }
+
+  [...memos]
+    .slice()
+    .reverse()
+    .forEach((memo) => {
+      const item = document.createElement("li");
+      item.className = "memo";
+
+      const header = document.createElement("div");
+      header.className = "memo__meta";
+
+      const name = document.createElement("strong");
+      name.textContent = memo?.name || "Anon";
+
+      const meta = document.createElement("span");
+      const time = memo?.timestamp ? formatTimestamp(Number(memo.timestamp)) : "unknown time";
+      meta.textContent = `${time} · ${shortenAddress(memo?.supporter)}`;
+
+      const message = document.createElement("p");
+      message.className = "memo__message";
+      message.textContent = memo?.message || "(no message)";
+
+      header.append(name, meta);
+      item.append(header, message);
+      coffeeEls.memosList.appendChild(item);
+    });
+}
+
+function setCoffeeStatus(message, variant = "info") {
+  if (!coffeeEls.status) return;
+  coffeeEls.status.textContent = message;
+  coffeeEls.status.dataset.variant = variant;
+}
+
+function shortenAddress(value = "") {
+  if (!value || typeof value !== "string" || value.length < 10) return value || "unknown";
+  return `${value.slice(0, 6)}…${value.slice(-4)}`;
+}
+
+function formatTimestamp(timestamp) {
+  if (!timestamp) return "unknown time";
+  const date = timestamp instanceof Date ? timestamp : new Date(Number(timestamp) * 1000);
+  if (Number.isNaN(date.getTime())) return "unknown time";
+  return date.toLocaleString(undefined, { month: "short", day: "numeric" });
+}
+
+function safeParseEther(value) {
+  try {
+    ensureEthers();
+    return ethers.parseEther(String(value));
+  } catch (err) {
+    console.warn("Unable to parse ETH amount", err);
+    return null;
+  }
+}
+
+function extractErrorMessage(err) {
+  if (!err) return "Unknown error";
+  return err.reason || err.message || String(err);
+}
+
+function ensureEthers() {
+  if (typeof ethers === "undefined") {
+    throw new Error("ethers.js failed to load. Refresh and try again.");
   }
 }
