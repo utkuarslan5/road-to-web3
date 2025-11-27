@@ -15,6 +15,8 @@ const config = {
   cacheKey: "utkulabs:trophy",
 };
 
+const mocks = typeof window !== "undefined" ? window.__APP_MOCKS || {} : {};
+
 const coffeeConfig = {
   contractAddress: "0x86a531F9Fa82E220B28c854C900178c37CFC9ab5",
   chainId: 11155111n,
@@ -64,6 +66,7 @@ const state = {
     signer: null,
     contract: null,
     account: "",
+    connecting: false,
   },
 };
 
@@ -71,6 +74,11 @@ initTrophy();
 initCoffee();
 
 function initTrophy() {
+  if (mocks?.trophySnapshot) {
+    renderSnapshot(mocks.trophySnapshot);
+    setStatus("Loaded mock trophy data.", "success");
+    return;
+  }
   const cached = readCache();
   if (cached) {
     renderSnapshot(cached);
@@ -328,6 +336,9 @@ function readCache() {
 function initCoffee() {
   if (!coffeeEls.status) return;
 
+  const mockMemos = mocks?.coffeeMemos;
+  const skipRpc = Boolean(mocks?.skipCoffeeRpc);
+
   if (coffeeEls.contractLink) {
     coffeeEls.contractLink.href = `${coffeeConfig.explorer}/address/${coffeeConfig.contractAddress}`;
     coffeeEls.contractLink.textContent = shortenAddress(coffeeConfig.contractAddress);
@@ -338,6 +349,12 @@ function initCoffee() {
   coffeeEls.refreshBtn?.addEventListener("click", refreshMemos);
   coffeeEls.connectBtn?.addEventListener("click", connectCoffeeWallet);
   coffeeEls.form?.addEventListener("submit", handleCoffeeSubmit);
+
+  if (Array.isArray(mockMemos)) {
+    renderMemos(mockMemos);
+    setCoffeeStatus("Memo board mocked for tests.");
+  }
+  if (skipRpc) return;
 
   try {
     ensureEthers();
@@ -355,6 +372,11 @@ function initCoffee() {
 }
 
 async function connectCoffeeWallet() {
+  if (state.coffee.connecting) {
+    setCoffeeStatus("Connection already pending in your wallet. Check MetaMask pop-up.", "error");
+    return;
+  }
+  state.coffee.connecting = true;
   if (typeof window === "undefined" || !window.ethereum) {
     setCoffeeStatus("No injected wallet detected. Install MetaMask to send a coffee.", "error");
     return;
@@ -366,7 +388,43 @@ async function connectCoffeeWallet() {
     const isCorrectNetwork = await ensureCorrectNetwork(provider);
     if (!isCorrectNetwork) return;
 
-    const accounts = await provider.send("eth_requestAccounts", []);
+  const existing = await provider.send("eth_accounts", []);
+  if (existing?.length) {
+      const signer = await provider.getSigner();
+      const address = await signer.getAddress();
+      state.coffee.signer = signer;
+      state.coffee.contract = new ethers.Contract(coffeeConfig.contractAddress, coffeeAbi, signer);
+      state.coffee.account = address;
+      coffeeEls.sendBtn && (coffeeEls.sendBtn.disabled = false);
+      coffeeEls.connectBtn && (coffeeEls.connectBtn.textContent = "Wallet connected");
+      setCoffeeStatus(`Connected as ${shortenAddress(address)} on ${coffeeConfig.chainName}.`);
+      state.coffee.connecting = false;
+      return;
+    }
+
+    let accounts;
+    try {
+      accounts = await provider.send("eth_requestAccounts", []);
+    } catch (err) {
+      // Some wallets require wallet_requestPermissions to surface the modal.
+      const alreadyPending = err?.code === -32002 || /already pending/i.test(err?.message || "");
+      if (alreadyPending) {
+        setCoffeeStatus(
+          "A MetaMask request is already open. Open the extension and approve, or reject it before retrying.",
+          "error",
+        );
+        return;
+      }
+      try {
+        await window.ethereum.request?.({
+          method: "wallet_requestPermissions",
+          params: [{ eth_accounts: {} }],
+        });
+        accounts = await provider.send("eth_accounts", []);
+      } catch (innerErr) {
+        throw innerErr;
+      }
+    }
     if (!accounts?.length) {
       setCoffeeStatus("Wallet connection was rejected.", "error");
       return;
@@ -388,7 +446,15 @@ async function connectCoffeeWallet() {
     setCoffeeStatus(`Connected as ${shortenAddress(address)} on ${coffeeConfig.chainName}.`);
   } catch (err) {
     console.error(err);
-    setCoffeeStatus(extractErrorMessage(err), "error");
+    const alreadyPending = err?.code === -32002 || /already pending/i.test(err?.message || "");
+    setCoffeeStatus(
+      alreadyPending
+        ? "A MetaMask connection request is already pending. Open the extension and confirm or close it before retrying."
+        : extractErrorMessage(err),
+      "error",
+    );
+  } finally {
+    state.coffee.connecting = false;
   }
 }
 
@@ -456,6 +522,7 @@ async function handleCoffeeSubmit(event) {
 }
 
 async function refreshMemos() {
+  if (mocks?.skipCoffeeRpc) return;
   if (!state.coffee.readContract || !coffeeEls.memosList) return;
   try {
     const memos = await state.coffee.readContract.memos();
@@ -546,4 +613,12 @@ function ensureEthers() {
   if (typeof ethers === "undefined") {
     throw new Error("ethers.js failed to load. Refresh and try again.");
   }
+}
+
+// Expose minimal handles for test harnesses (no runtime dependency).
+if (typeof window !== "undefined") {
+  window.__APP_PUBLIC = {
+    refreshMemos,
+    setCoffeeStatus,
+  };
 }
