@@ -1,22 +1,21 @@
 # Node modules
-week2/BmC-contract/node_modules
+week2/node_modules
 
 # Compilation output
-week2/BmC-contract/dist
+week2/dist
 
-# pnpm deploy output
-week2/BmC-contract/bundle
+week2/bundle
 
 # Hardhat Build Artifacts
-week2/BmC-contract/artifacts
+week2/artifacts
 
 # Hardhat compilation (v2) support directory
-week2/BmC-contract/cache
+week2/cache
 
 # Typechain output
-week2/BmC-contract/types
+week2/types
 
 # Hardhat coverage reports
-week2/BmC-contract/coverage
+week2/coverage
 
-week2/BmC-contract/.env
+week2/.env
