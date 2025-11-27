@@ -16,7 +16,12 @@ contract BuyMeACoffe {
     address payable private _owner;
     Memo[] private _memos;
 
-    event NewCoffee(address indexed supporter, uint256 value, string name, string message);
+    event NewCoffee(
+        address indexed supporter,
+        uint256 value,
+        string name,
+        string message
+    );
     event Withdraw(address indexed to, uint256 amount);
     event OwnerUpdated(address indexed previousOwner, address indexed newOwner);
 
@@ -38,15 +43,20 @@ contract BuyMeACoffe {
      * @param name Display name of the supporter.
      * @param message Message to the creator.
      */
-    function buyCoffee(string calldata name, string calldata message) external payable {
+    function buyCoffee(
+        string calldata name,
+        string calldata message
+    ) external payable {
         if (msg.value == 0) revert TipTooSmall();
 
-        _memos.push(Memo({
-            supporter: msg.sender,
-            timestamp: block.timestamp,
-            name: name,
-            message: message
-        }));
+        _memos.push(
+            Memo({
+                supporter: msg.sender,
+                timestamp: block.timestamp,
+                name: name,
+                message: message
+            })
+        );
 
         emit NewCoffee(msg.sender, msg.value, name, message);
     }
