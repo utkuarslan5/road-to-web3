@@ -19,5 +19,4 @@ week2/BmC-contract/types
 # Hardhat coverage reports
 week2/BmC-contract/coverage
 
-week2/BmC-contract/package-lock.json
 week2/BmC-contract/.env
