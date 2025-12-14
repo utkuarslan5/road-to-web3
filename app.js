@@ -365,7 +365,7 @@ async function initWeek3() {
     week3Els.contractLink.textContent = shortenAddress(week3Config.contractAddress);
   }
 
-  setStatus(week3Els.status, "Connect wallet to interact with Chain Battles", "info");
+  setStatus(week3Els.status, "Loading Chain Battles...", "info");
 
   week3Els.connectBtn?.addEventListener("click", connectWeek3Wallet);
   week3Els.mintBtn?.addEventListener("click", mintWarrior);
@@ -381,8 +381,15 @@ async function initWeek3() {
       chainBattlesAbi,
       state.week3.readProvider
     );
+
+    // Auto-load Token #1 if contract is deployed
+    if (week3Config.contractAddress !== "0x0000000000000000000000000000000000000000") {
+      await loadTokenData(1);
+      setStatus(week3Els.status, "Connect wallet to mint or train warriors", "info");
+    }
   } catch (err) {
     console.error(err);
+    setStatus(week3Els.status, "Connect wallet to interact with Chain Battles", "info");
   }
 }
 
@@ -557,42 +564,73 @@ async function loadTokenData(tokenId) {
     return;
   }
 
+  // helper to blank out stats when contract doesn't expose them
+  const setEmptyStats = (note = "-") => {
+    if (week3Els.level) week3Els.level.textContent = note;
+    if (week3Els.rarity) week3Els.rarity.textContent = note;
+    if (week3Els.power) week3Els.power.textContent = note;
+    if (week3Els.agility) week3Els.agility.textContent = note;
+    if (week3Els.vitality) week3Els.vitality.textContent = note;
+    if (week3Els.record) week3Els.record.textContent = `${note} / ${note}`;
+    if (week3Els.cooldown) week3Els.cooldown.textContent = "Not available";
+  };
+
   try {
     setStatus(week3Els.status, `Loading warrior #${tokenId}...`, "info");
 
-    // Get stats
-    const stats = await state.week3.readContract.statsOf(tokenId);
+    // Always try to fetch tokenURI first so we can at least render the image
     const tokenURI = await state.week3.readContract.tokenURI(tokenId);
+
+    // Try to fetch stats; some older contract versions won't have this method
+    let stats = null;
+    let statsError = null;
+    try {
+      stats = await state.week3.readContract.statsOf(tokenId);
+    } catch (err) {
+      statsError = err;
+    }
 
     // Update state
     state.week3.currentTokenId = tokenId;
 
-    // Parse stats
-    const rarityLabels = ["Common", "Uncommon", "Rare", "Epic", "Mythic"];
-    const rarity = rarityLabels[stats.rarity] || "Unknown";
+    if (stats) {
+      const rarityLabels = ["Common", "Uncommon", "Rare", "Epic", "Mythic"];
+      const rarity = rarityLabels[stats.rarity] || "Unknown";
 
-    // Update UI
-    if (week3Els.level) week3Els.level.textContent = stats.level.toString();
-    if (week3Els.rarity) week3Els.rarity.textContent = rarity;
-    if (week3Els.power) week3Els.power.textContent = stats.power.toString();
-    if (week3Els.agility) week3Els.agility.textContent = stats.agility.toString();
-    if (week3Els.vitality) week3Els.vitality.textContent = stats.vitality.toString();
-    if (week3Els.record) {
-      week3Els.record.textContent = `${stats.victories} / ${stats.defeats}`;
-    }
-
-    // Calculate cooldown
-    const now = Math.floor(Date.now() / 1000);
-    const lastAction = Number(stats.lastAction);
-    const cooldownEnd = lastAction + week3Config.cooldownSeconds;
-    const remaining = Math.max(0, cooldownEnd - now);
-
-    if (week3Els.cooldown) {
-      if (remaining > 0) {
-        week3Els.cooldown.textContent = `Cooldown: ${remaining}s remaining`;
-      } else {
-        week3Els.cooldown.textContent = "Ready to train!";
+      // Update UI with real stats
+      if (week3Els.level) week3Els.level.textContent = stats.level.toString();
+      if (week3Els.rarity) week3Els.rarity.textContent = rarity;
+      if (week3Els.power) week3Els.power.textContent = stats.power.toString();
+      if (week3Els.agility) week3Els.agility.textContent = stats.agility.toString();
+      if (week3Els.vitality) week3Els.vitality.textContent = stats.vitality.toString();
+      if (week3Els.record) {
+        week3Els.record.textContent = `${stats.victories} / ${stats.defeats}`;
       }
+
+      // Calculate cooldown
+      const now = Math.floor(Date.now() / 1000);
+      const lastAction = Number(stats.lastAction);
+      const cooldownEnd = lastAction + week3Config.cooldownSeconds;
+      const remaining = Math.max(0, cooldownEnd - now);
+
+      if (week3Els.cooldown) {
+        if (remaining > 0) {
+          week3Els.cooldown.textContent = `Cooldown: ${remaining}s remaining`;
+        } else {
+          week3Els.cooldown.textContent = "Ready to train!";
+        }
+      }
+
+      // Enable train button if connected and owner
+      if (state.week3.contract && remaining === 0) {
+        const owner = await state.week3.readContract.ownerOf(tokenId);
+        if (owner.toLowerCase() === state.week3.account.toLowerCase()) {
+          if (week3Els.trainBtn) week3Els.trainBtn.disabled = false;
+        }
+      }
+    } else {
+      // Stats not available (older contract) — show placeholders but still render NFT
+      setEmptyStats("–");
     }
 
     // Load image from tokenURI (it's a data URI)
@@ -605,18 +643,52 @@ async function loadTokenData(tokenId) {
       }
     }
 
-    setStatus(week3Els.status, `Warrior #${tokenId} loaded`, "success");
-
-    // Enable train button if connected and owner
-    if (state.week3.contract && remaining === 0) {
-      const owner = await state.week3.readContract.ownerOf(tokenId);
-      if (owner.toLowerCase() === state.week3.account.toLowerCase()) {
-        if (week3Els.trainBtn) week3Els.trainBtn.disabled = false;
-      }
+    if (statsError) {
+      setStatus(
+        week3Els.status,
+        "Loaded tokenURI, but stats/training aren’t supported by this contract version.",
+        "error"
+      );
+    } else {
+      setStatus(week3Els.status, `Warrior #${tokenId} loaded`, "success");
     }
   } catch (err) {
     console.error(err);
-    setStatus(week3Els.status, `Failed to load token: ${extractErrorMessage(err)}`, "error");
+
+    // Provide clearer guidance based on the root cause so the UI doesn't look "stuck"
+    const message = extractErrorMessage(err);
+    const lower = message.toLowerCase();
+
+    if (
+      lower.includes("function selector was not recognized") ||
+      lower.includes("missing revert data") ||
+      lower.includes("abi")
+    ) {
+      setStatus(
+        week3Els.status,
+        "ABI mismatch: the configured contract doesn't expose statsOf/tokenURI. Update week3Config.contractAddress to your deployed ChainBattles contract.",
+        "error"
+      );
+    } else if (
+      lower.includes("token does not exist") ||
+      lower.includes("nonexistent token")
+    ) {
+      setStatus(
+        week3Els.status,
+        "No warrior minted yet. Hit Mint Warrior to create #1, then try again.",
+        "error"
+      );
+    } else {
+      setStatus(week3Els.status, `Failed to load token: ${message}`, "error");
+    }
+
+    if (week3Els.skeleton) {
+      week3Els.skeleton.classList.remove("is-hidden");
+      week3Els.skeleton.innerHTML = `
+        <div class="skeleton-icon">⚠️</div>
+        <p>${week3Els.status?.textContent || "Unable to load warrior"}</p>
+      `;
+    }
   }
 }
 
