@@ -1,23 +1,20 @@
-const config = {
+// Configuration for Week 1 - LabMint Trophy
+const week1Config = {
   rpcUrl: "https://eth-sepolia.g.alchemy.com/v2/KP7J8NeqBmLe2H7v1waHF",
   contractAddress: "0xc84a1D9044Ceb74EC8C17FfD465f1af6Fe0e53DF",
   tokenId: 0,
   callData: "0xc87b56dd0000000000000000000000000000000000000000000000000000000000000000",
-  ipfsGateway: "https://ipfs.io/ipfs/",
   ipfsGateways: [
     "https://ipfs.io/ipfs/",
     "https://cloudflare-ipfs.com/ipfs/",
     "https://nftstorage.link/ipfs/",
     "https://gateway.pinata.cloud/ipfs/",
-    "https://cf-ipfs.com/ipfs/",
   ],
-  ipfsPathFallbacks: ["metadata.json", "token.json"],
-  cacheKey: "utkulabs:trophy",
+  cacheKey: "utkulabs:week1:trophy",
 };
 
-const mocks = typeof window !== "undefined" ? window.__APP_MOCKS || {} : {};
-
-const coffeeConfig = {
+// Configuration for Week 2 - Buy Me a Coffee
+const week2Config = {
   contractAddress: "0x86a531F9Fa82E220B28c854C900178c37CFC9ab5",
   chainId: 11155111n,
   chainIdHex: "0xaa36a7",
@@ -30,22 +27,40 @@ const coffeeConfig = {
 const coffeeAbi = [
   "function buyCoffee(string name,string message) public payable",
   "function memos() view returns (tuple(address supporter,uint256 timestamp,string name,string message)[])",
-  "function owner() view returns (address)",
 ];
 
-const els = {
-  status: document.getElementById("status"),
-  mediaSkeleton: document.getElementById("media-skeleton"),
-  nftImage: document.getElementById("nft-image"),
-  tokenUri: document.getElementById("token-uri"),
-  nftName: document.getElementById("nft-name"),
-  nftDescription: document.getElementById("nft-description"),
-  externalLink: document.getElementById("external-link"),
-  attributesSection: document.getElementById("attributes"),
-  attributesList: document.getElementById("attributes-list"),
+// Configuration for Week 3 - Chain Battles
+const week3Config = {
+  // NOTE: Replace with actual deployed contract address
+  contractAddress: "0xa19CE93621c003747b58ab98FaD7b419A6C596d4", // Placeholder - deploy contract first
+  chainId: 80002n, // Polygon Amoy
+  chainIdHex: "0x13882",
+  chainName: "Polygon Amoy",
+  explorer: "https://amoy.polygonscan.com",
+  rpcUrl: "https://polygon-amoy.g.alchemy.com/v2/TkrgpEOpu3jxDokxXlWBg",
+  cooldownSeconds: 60,
 };
 
-const coffeeEls = {
+const chainBattlesAbi = [
+  "function mint() external",
+  "function train(uint256 tokenId) external",
+  "function battle(uint256 attackerId, uint256 defenderId) external returns (bool)",
+  "function statsOf(uint256 tokenId) external view returns (tuple(uint48 lastAction, uint16 level, uint16 power, uint16 agility, uint16 vitality, uint32 victories, uint32 defeats, uint8 rarity))",
+  "function tokenURI(uint256 tokenId) external view returns (string)",
+  "function ownerOf(uint256 tokenId) external view returns (address)",
+  "function balanceOf(address owner) external view returns (uint256)",
+];
+
+// DOM Elements
+const week1Els = {
+  skeleton: document.getElementById("w1-skeleton"),
+  image: document.getElementById("w1-nft-image"),
+  name: document.getElementById("w1-nft-name"),
+  description: document.getElementById("w1-nft-description"),
+  status: document.getElementById("w1-status"),
+};
+
+const week2Els = {
   form: document.getElementById("coffee-form"),
   nameInput: document.getElementById("coffee-name"),
   messageInput: document.getElementById("coffee-message"),
@@ -55,12 +70,30 @@ const coffeeEls = {
   status: document.getElementById("coffee-status"),
   memosList: document.getElementById("memos-list"),
   refreshBtn: document.getElementById("coffee-refresh"),
-  contractLink: document.getElementById("coffee-contract-link"),
 };
 
+const week3Els = {
+  skeleton: document.getElementById("w3-skeleton"),
+  image: document.getElementById("w3-nft-image"),
+  connectBtn: document.getElementById("w3-connect"),
+  mintBtn: document.getElementById("w3-mint"),
+  trainBtn: document.getElementById("w3-train"),
+  viewBtn: document.getElementById("w3-view"),
+  tokenInput: document.getElementById("w3-token-input"),
+  status: document.getElementById("w3-status"),
+  level: document.getElementById("w3-level"),
+  rarity: document.getElementById("w3-rarity"),
+  power: document.getElementById("w3-power"),
+  agility: document.getElementById("w3-agility"),
+  vitality: document.getElementById("w3-vitality"),
+  record: document.getElementById("w3-record"),
+  cooldown: document.getElementById("w3-cooldown"),
+  contractLink: document.getElementById("w3-contract-link"),
+};
+
+// State management
 const state = {
-  rendered: false,
-  coffee: {
+  week2: {
     readProvider: null,
     readContract: null,
     signer: null,
@@ -68,100 +101,538 @@ const state = {
     account: "",
     connecting: false,
   },
+  week3: {
+    readProvider: null,
+    readContract: null,
+    signer: null,
+    contract: null,
+    account: "",
+    connecting: false,
+    currentTokenId: null,
+    userTokenIds: [],
+  },
 };
 
-initTrophy();
-initCoffee();
+// ============================================
+// WEEK 1: LabMint Trophy
+// ============================================
 
-function initTrophy() {
-  if (mocks?.trophySnapshot) {
-    renderSnapshot(mocks.trophySnapshot);
-    setStatus("Loaded mock trophy data.", "success");
+async function initWeek1() {
+  setStatus(week1Els.status, "Fetching NFT from Sepolia...", "info");
+
+  const cached = readCache(week1Config.cacheKey);
+  if (cached) {
+    renderWeek1NFT(cached);
+    setStatus(week1Els.status, "Showing cached data, refreshing...", "info");
+  }
+
+  try {
+    const response = await fetch(week1Config.rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "eth_call",
+        params: [
+          {
+            to: week1Config.contractAddress,
+            data: week1Config.callData,
+          },
+          "latest",
+        ],
+      }),
+    });
+
+    const body = await response.json();
+    if (!body?.result) throw new Error("No result from RPC");
+
+    const tokenUri = decodeAbiString(body.result);
+    const metadata = await fetchMetadata(buildGatewayUrls(tokenUri));
+
+    const snapshot = {
+      fetchedAt: Date.now(),
+      tokenUri,
+      metadata,
+    };
+
+    renderWeek1NFT(snapshot);
+    saveCache(week1Config.cacheKey, snapshot);
+    setStatus(week1Els.status, "NFT loaded from Sepolia", "success");
+  } catch (err) {
+    console.error(err);
+    if (!cached) {
+      setStatus(week1Els.status, `Failed to load NFT: ${err.message}`, "error");
+    } else {
+      setStatus(week1Els.status, "Using cached data (refresh failed)", "error");
+    }
+  }
+}
+
+function renderWeek1NFT(snapshot) {
+  const { metadata } = snapshot;
+
+  week1Els.name.textContent = metadata?.name || "Untitled NFT";
+  week1Els.description.textContent = metadata?.description || "";
+
+  const imageUrl = resolveIpfs(metadata?.image || metadata?.animation_url);
+  if (imageUrl) {
+    week1Els.image.src = imageUrl;
+    week1Els.image.alt = metadata?.name || "NFT";
+    week1Els.image.classList.remove("is-hidden");
+  }
+
+  if (week1Els.skeleton) {
+    week1Els.skeleton.classList.add("is-hidden");
+  }
+}
+
+// ============================================
+// WEEK 2: Buy Me a Coffee
+// ============================================
+
+async function initWeek2() {
+  setStatus(week2Els.status, "Connect your wallet to send a coffee", "info");
+
+  week2Els.connectBtn?.addEventListener("click", connectWeek2Wallet);
+  week2Els.refreshBtn?.addEventListener("click", refreshMemos);
+  week2Els.form?.addEventListener("submit", handleCoffeeSend);
+
+  try {
+    ensureEthers();
+    state.week2.readProvider = new ethers.JsonRpcProvider(week2Config.rpcUrl);
+    state.week2.readContract = new ethers.Contract(
+      week2Config.contractAddress,
+      coffeeAbi,
+      state.week2.readProvider
+    );
+    await refreshMemos();
+  } catch (err) {
+    console.error(err);
+    setStatus(week2Els.status, `Unable to load memos: ${err.message}`, "error");
+  }
+}
+
+async function connectWeek2Wallet() {
+  if (state.week2.connecting) {
+    setStatus(week2Els.status, "Connection pending in your wallet", "error");
     return;
   }
-  const cached = readCache();
-  if (cached) {
-    renderSnapshot(cached);
-    setStatus("Showing cached data, refreshing from RPC…");
+
+  state.week2.connecting = true;
+
+  if (!window.ethereum) {
+    setStatus(week2Els.status, "Install MetaMask to send a coffee", "error");
+    state.week2.connecting = false;
+    return;
   }
-  fetchLiveData().catch((err) => {
-    console.error(err);
-    const metadataFailure = err?.stage === "metadata";
-    const message = err?.message ?? String(err);
-    if (!cached) {
-      setStatus(
-        metadataFailure
-          ? `tokenURI fetched but metadata is unreachable (${message}).`
-          : `Failed to fetch from RPC: ${message}.`,
-        "error",
-      );
-    } else {
-      setStatus(
-        metadataFailure
-          ? `Using cached data. Metadata refresh failed (${message}).`
-          : `Using cached data. Refresh to retry RPC fetch (last error: ${message}).`,
-        "error",
-      );
+
+  ensureEthers();
+
+  try {
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    await ensureCorrectNetwork(provider, week2Config);
+
+    const accounts = await provider.send("eth_requestAccounts", []);
+    if (!accounts?.length) {
+      setStatus(week2Els.status, "Wallet connection rejected", "error");
+      return;
     }
+
+    const signer = await provider.getSigner();
+    const address = await signer.getAddress();
+
+    state.week2.signer = signer;
+    state.week2.contract = new ethers.Contract(
+      week2Config.contractAddress,
+      coffeeAbi,
+      signer
+    );
+    state.week2.account = address;
+
+    if (week2Els.sendBtn) week2Els.sendBtn.disabled = false;
+    if (week2Els.connectBtn) week2Els.connectBtn.textContent = "✓ Connected";
+
+    setStatus(week2Els.status, `Connected: ${shortenAddress(address)}`, "success");
+  } catch (err) {
+    console.error(err);
+    setStatus(week2Els.status, extractErrorMessage(err), "error");
+  } finally {
+    state.week2.connecting = false;
+  }
+}
+
+async function handleCoffeeSend(event) {
+  event.preventDefault();
+
+  if (!state.week2.contract) {
+    await connectWeek2Wallet();
+    if (!state.week2.contract) return;
+  }
+
+  const name = (week2Els.nameInput?.value || "").trim() || "Anonymous";
+  const message = (week2Els.messageInput?.value || "").trim() || "Thanks!";
+  const amount = week2Els.amountInput?.value || week2Config.defaultAmountEth;
+
+  const parsedAmount = safeParseEther(amount);
+  if (!parsedAmount || parsedAmount <= 0n) {
+    setStatus(week2Els.status, "Invalid amount", "error");
+    return;
+  }
+
+  try {
+    if (week2Els.sendBtn) week2Els.sendBtn.disabled = true;
+    setStatus(week2Els.status, "Sending coffee...", "info");
+
+    const tx = await state.week2.contract.buyCoffee(name, message, {
+      value: parsedAmount,
+    });
+
+    setStatus(week2Els.status, "Waiting for confirmation...", "info");
+    await tx.wait();
+
+    setStatus(week2Els.status, "Coffee sent! Thanks for supporting 🎉", "success");
+
+    if (week2Els.sendBtn) week2Els.sendBtn.disabled = false;
+    week2Els.form?.reset();
+    if (week2Els.amountInput) week2Els.amountInput.value = week2Config.defaultAmountEth;
+
+    await refreshMemos();
+  } catch (err) {
+    console.error(err);
+    if (week2Els.sendBtn) week2Els.sendBtn.disabled = false;
+    setStatus(week2Els.status, extractErrorMessage(err), "error");
+  }
+}
+
+async function refreshMemos() {
+  if (!state.week2.readContract) return;
+
+  try {
+    const memos = await state.week2.readContract.memos();
+    renderMemos(memos);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function renderMemos(memos) {
+  if (!week2Els.memosList) return;
+
+  week2Els.memosList.innerHTML = "";
+
+  if (!Array.isArray(memos) || memos.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "memo-empty";
+    empty.textContent = "No memos yet. Be the first!";
+    week2Els.memosList.appendChild(empty);
+    return;
+  }
+
+  [...memos].reverse().forEach((memo) => {
+    const item = document.createElement("li");
+    item.className = "memo-item";
+
+    const header = document.createElement("div");
+    header.className = "memo-header";
+
+    const name = document.createElement("strong");
+    name.textContent = memo?.name || "Anonymous";
+
+    const meta = document.createElement("span");
+    meta.className = "memo-meta";
+    const time = memo?.timestamp ? formatTimestamp(Number(memo.timestamp)) : "unknown";
+    meta.textContent = `${time} · ${shortenAddress(memo?.supporter)}`;
+
+    const message = document.createElement("p");
+    message.className = "memo-message";
+    message.textContent = memo?.message || "(no message)";
+
+    header.append(name, meta);
+    item.append(header, message);
+    week2Els.memosList.appendChild(item);
   });
 }
 
-async function fetchLiveData() {
-  setStatus("Fetching tokenURI via Alchemy RPC…");
-  const rpcPayload = {
-    jsonrpc: "2.0",
-    id: 1,
-    method: "eth_call",
-    params: [
-      {
-        to: config.contractAddress,
-        data: config.callData,
-      },
-      "latest",
-    ],
-  };
+// ============================================
+// WEEK 3: Chain Battles
+// ============================================
 
-  const response = await fetch(config.rpcUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(rpcPayload),
-  });
-
-  if (!response.ok) {
-    throw new Error(`RPC request failed (${response.status})`);
+async function initWeek3() {
+  // Update contract link
+  if (week3Els.contractLink && week3Config.contractAddress !== "0x0000000000000000000000000000000000000000") {
+    week3Els.contractLink.href = `${week3Config.explorer}/address/${week3Config.contractAddress}`;
+    week3Els.contractLink.textContent = shortenAddress(week3Config.contractAddress);
   }
 
-  const body = await response.json();
-  if (!body?.result) {
-    throw new Error("RPC response missing result field");
+  setStatus(week3Els.status, "Connect wallet to interact with Chain Battles", "info");
+
+  week3Els.connectBtn?.addEventListener("click", connectWeek3Wallet);
+  week3Els.mintBtn?.addEventListener("click", mintWarrior);
+  week3Els.trainBtn?.addEventListener("click", trainWarrior);
+  week3Els.viewBtn?.addEventListener("click", viewTokenById);
+
+  // Initialize read provider for viewing NFTs
+  try {
+    ensureEthers();
+    state.week3.readProvider = new ethers.JsonRpcProvider(week3Config.rpcUrl);
+    state.week3.readContract = new ethers.Contract(
+      week3Config.contractAddress,
+      chainBattlesAbi,
+      state.week3.readProvider
+    );
+  } catch (err) {
+    console.error(err);
   }
-
-  setStatus("Decoding tokenURI and loading metadata…");
-  const tokenUri = decodeAbiString(body.result);
-  const metadataSources = buildGatewayUrls(tokenUri);
-  const metadataUrl = metadataSources[0] || tokenUri;
-  const metadata = await fetchMetadata(metadataSources);
-
-  const snapshot = {
-    fetchedAt: Date.now(),
-    rpcResult: body.result,
-    tokenUri,
-    metadataUrl,
-    metadata,
-  };
-
-  renderSnapshot(snapshot);
-  saveCache(snapshot);
-  setStatus("Synced trophy data from Sepolia.", "success");
 }
+
+async function connectWeek3Wallet() {
+  if (state.week3.connecting) {
+    setStatus(week3Els.status, "Connection pending in your wallet", "error");
+    return;
+  }
+
+  state.week3.connecting = true;
+
+  if (!window.ethereum) {
+    setStatus(week3Els.status, "Install MetaMask to interact", "error");
+    state.week3.connecting = false;
+    return;
+  }
+
+  ensureEthers();
+
+  try {
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    await ensureCorrectNetwork(provider, week3Config);
+
+    const accounts = await provider.send("eth_requestAccounts", []);
+    if (!accounts?.length) {
+      setStatus(week3Els.status, "Wallet connection rejected", "error");
+      return;
+    }
+
+    const signer = await provider.getSigner();
+    const address = await signer.getAddress();
+
+    state.week3.signer = signer;
+    state.week3.contract = new ethers.Contract(
+      week3Config.contractAddress,
+      chainBattlesAbi,
+      signer
+    );
+    state.week3.account = address;
+
+    // Enable buttons
+    if (week3Els.mintBtn) week3Els.mintBtn.disabled = false;
+    if (week3Els.viewBtn) week3Els.viewBtn.disabled = false;
+    if (week3Els.connectBtn) week3Els.connectBtn.textContent = "✓ Connected";
+
+    setStatus(week3Els.status, `Connected: ${shortenAddress(address)}`, "success");
+
+    // Check if user has any NFTs
+    await loadUserNFTs(address);
+  } catch (err) {
+    console.error(err);
+    setStatus(week3Els.status, extractErrorMessage(err), "error");
+  } finally {
+    state.week3.connecting = false;
+  }
+}
+
+async function loadUserNFTs(address) {
+  if (!state.week3.readContract) return;
+
+  try {
+    const balance = await state.week3.readContract.balanceOf(address);
+    if (balance > 0) {
+      // For simplicity, we'll just enable train button
+      // In a real app, you'd query all token IDs owned by the user
+      if (week3Els.trainBtn) week3Els.trainBtn.disabled = false;
+    }
+  } catch (err) {
+    console.error("Error loading user NFTs:", err);
+  }
+}
+
+async function mintWarrior() {
+  if (!state.week3.contract) {
+    setStatus(week3Els.status, "Connect wallet first", "error");
+    return;
+  }
+
+  try {
+    if (week3Els.mintBtn) week3Els.mintBtn.disabled = true;
+    setStatus(week3Els.status, "Minting warrior...", "info");
+
+    const tx = await state.week3.contract.mint();
+    setStatus(week3Els.status, "Waiting for confirmation...", "info");
+    const receipt = await tx.wait();
+
+    // Try to get the token ID from the event
+    // ERC721 Transfer event: Transfer(address indexed from, address indexed to, uint256 indexed tokenId)
+    const transferEvent = receipt.logs.find((log) => {
+      try {
+        const parsed = state.week3.contract.interface.parseLog(log);
+        return parsed?.name === "Transfer";
+      } catch {
+        return false;
+      }
+    });
+
+    let tokenId = null;
+    if (transferEvent) {
+      const parsed = state.week3.contract.interface.parseLog(transferEvent);
+      tokenId = parsed.args[2]; // tokenId is the third argument
+    }
+
+    setStatus(week3Els.status, `Warrior minted! ${tokenId ? `Token ID: ${tokenId}` : ""}`, "success");
+
+    if (tokenId) {
+      state.week3.currentTokenId = Number(tokenId);
+      await loadTokenData(Number(tokenId));
+    }
+
+    if (week3Els.mintBtn) week3Els.mintBtn.disabled = false;
+    if (week3Els.trainBtn) week3Els.trainBtn.disabled = false;
+  } catch (err) {
+    console.error(err);
+    if (week3Els.mintBtn) week3Els.mintBtn.disabled = false;
+    setStatus(week3Els.status, extractErrorMessage(err), "error");
+  }
+}
+
+async function trainWarrior() {
+  if (!state.week3.contract) {
+    setStatus(week3Els.status, "Connect wallet first", "error");
+    return;
+  }
+
+  const tokenId = state.week3.currentTokenId || Number(week3Els.tokenInput?.value);
+  if (!tokenId) {
+    setStatus(week3Els.status, "No token ID selected", "error");
+    return;
+  }
+
+  try {
+    if (week3Els.trainBtn) week3Els.trainBtn.disabled = true;
+    setStatus(week3Els.status, "Training warrior...", "info");
+
+    const tx = await state.week3.contract.train(tokenId);
+    setStatus(week3Els.status, "Waiting for confirmation...", "info");
+    await tx.wait();
+
+    setStatus(week3Els.status, "Warrior trained successfully! 💪", "success");
+
+    // Reload the token data
+    await loadTokenData(tokenId);
+
+    if (week3Els.trainBtn) week3Els.trainBtn.disabled = false;
+  } catch (err) {
+    console.error(err);
+    if (week3Els.trainBtn) week3Els.trainBtn.disabled = false;
+
+    // Check if it's a cooldown error
+    if (err.message?.includes("Cooldown")) {
+      setStatus(week3Els.status, "Warrior is on cooldown. Wait 60 seconds.", "error");
+    } else {
+      setStatus(week3Els.status, extractErrorMessage(err), "error");
+    }
+  }
+}
+
+async function viewTokenById() {
+  const tokenId = Number(week3Els.tokenInput?.value);
+  if (!tokenId || tokenId < 1) {
+    setStatus(week3Els.status, "Enter a valid token ID", "error");
+    return;
+  }
+
+  await loadTokenData(tokenId);
+}
+
+async function loadTokenData(tokenId) {
+  if (!state.week3.readContract) {
+    setStatus(week3Els.status, "Contract not initialized", "error");
+    return;
+  }
+
+  try {
+    setStatus(week3Els.status, `Loading warrior #${tokenId}...`, "info");
+
+    // Get stats
+    const stats = await state.week3.readContract.statsOf(tokenId);
+    const tokenURI = await state.week3.readContract.tokenURI(tokenId);
+
+    // Update state
+    state.week3.currentTokenId = tokenId;
+
+    // Parse stats
+    const rarityLabels = ["Common", "Uncommon", "Rare", "Epic", "Mythic"];
+    const rarity = rarityLabels[stats.rarity] || "Unknown";
+
+    // Update UI
+    if (week3Els.level) week3Els.level.textContent = stats.level.toString();
+    if (week3Els.rarity) week3Els.rarity.textContent = rarity;
+    if (week3Els.power) week3Els.power.textContent = stats.power.toString();
+    if (week3Els.agility) week3Els.agility.textContent = stats.agility.toString();
+    if (week3Els.vitality) week3Els.vitality.textContent = stats.vitality.toString();
+    if (week3Els.record) {
+      week3Els.record.textContent = `${stats.victories} / ${stats.defeats}`;
+    }
+
+    // Calculate cooldown
+    const now = Math.floor(Date.now() / 1000);
+    const lastAction = Number(stats.lastAction);
+    const cooldownEnd = lastAction + week3Config.cooldownSeconds;
+    const remaining = Math.max(0, cooldownEnd - now);
+
+    if (week3Els.cooldown) {
+      if (remaining > 0) {
+        week3Els.cooldown.textContent = `Cooldown: ${remaining}s remaining`;
+      } else {
+        week3Els.cooldown.textContent = "Ready to train!";
+      }
+    }
+
+    // Load image from tokenURI (it's a data URI)
+    if (tokenURI.startsWith("data:application/json")) {
+      const json = JSON.parse(atob(tokenURI.split(",")[1]));
+      if (json.image && week3Els.image) {
+        week3Els.image.src = json.image;
+        week3Els.image.classList.remove("is-hidden");
+        if (week3Els.skeleton) week3Els.skeleton.classList.add("is-hidden");
+      }
+    }
+
+    setStatus(week3Els.status, `Warrior #${tokenId} loaded`, "success");
+
+    // Enable train button if connected and owner
+    if (state.week3.contract && remaining === 0) {
+      const owner = await state.week3.readContract.ownerOf(tokenId);
+      if (owner.toLowerCase() === state.week3.account.toLowerCase()) {
+        if (week3Els.trainBtn) week3Els.trainBtn.disabled = false;
+      }
+    }
+  } catch (err) {
+    console.error(err);
+    setStatus(week3Els.status, `Failed to load token: ${extractErrorMessage(err)}`, "error");
+  }
+}
+
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
 
 function decodeAbiString(hexString) {
   if (!hexString) throw new Error("Empty hex string");
   const hex = hexString.startsWith("0x") ? hexString.slice(2) : hexString;
-  if (hex.length < 128) throw new Error("Hex string too short to contain ABI data");
+  if (hex.length < 128) throw new Error("Hex string too short");
+
   const lengthHex = hex.slice(64, 128);
   const length = Number.parseInt(lengthHex, 16);
   const dataHex = hex.slice(128, 128 + length * 2);
+
   let out = "";
   for (let i = 0; i < dataHex.length; i += 2) {
     const byte = Number.parseInt(dataHex.slice(i, i + 2), 16);
@@ -173,425 +644,78 @@ function decodeAbiString(hexString) {
 }
 
 function resolveIpfs(uri = "") {
-  return buildGatewayUrls(uri)[0] || "";
-}
-
-async function fetchMetadata(urls) {
-  const attempts = (Array.isArray(urls) ? urls : [urls]).filter(Boolean);
-  if (!attempts.length) {
-    const err = new Error("Missing metadata URL");
-    err.stage = "metadata";
-    throw err;
-  }
-
-  const errors = [];
-  for (const url of attempts) {
-    try {
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) {
-        errors.push(`${url} → HTTP ${res.status}`);
-        continue;
-      }
-      return res.json();
-    } catch (err) {
-      errors.push(`${url} → ${err.message}`);
-    }
-  }
-
-  const error = new Error(errors.join(" | ") || "Metadata fetch failed");
-  error.stage = "metadata";
-  throw error;
-}
-
-function renderSnapshot(snapshot) {
-  state.rendered = true;
-  const { tokenUri, metadata, metadataUrl } = snapshot;
-
-  els.tokenUri.textContent = tokenUri;
-  els.tokenUri.href = resolveIpfs(tokenUri);
-
-  els.nftName.textContent = metadata?.name || "Untitled token";
-  els.nftDescription.textContent = metadata?.description || "";
-
-  const external = metadata?.external_url || metadataUrl;
-  els.externalLink.textContent = external ? readableHostname(external) : "Metadata";
-  els.externalLink.href = external || metadataUrl;
-
-  const imageUrl = resolveIpfs(metadata?.image || metadata?.animation_url);
-  if (imageUrl) {
-    els.nftImage.src = imageUrl;
-    els.nftImage.alt = metadata?.name || "NFT media";
-    els.nftImage.classList.remove("is-hidden");
-  }
-  if (els.mediaSkeleton) {
-    els.mediaSkeleton.classList.add("is-hidden");
-  }
-
-  renderAttributes(metadata?.attributes);
-}
-
-function renderAttributes(attributes) {
-  if (!Array.isArray(attributes) || attributes.length === 0) {
-    els.attributesSection.hidden = true;
-    els.attributesList.innerHTML = "";
-    return;
-  }
-  els.attributesSection.hidden = false;
-  els.attributesList.innerHTML = "";
-  attributes.forEach((attr) => {
-    const item = document.createElement("li");
-    const trait = attr?.trait_type ?? attr?.trait ?? "Trait";
-    const value = attr?.value ?? "—";
-    const label = document.createElement("span");
-    label.textContent = trait;
-    const strong = document.createElement("strong");
-    strong.textContent = value;
-    item.append(label, strong);
-    els.attributesList.appendChild(item);
-  });
-}
-
-function readableHostname(url) {
-  try {
-    return new URL(url).hostname;
-  } catch (err) {
-    return url;
-  }
+  const urls = buildGatewayUrls(uri);
+  return urls[0] || "";
 }
 
 function buildGatewayUrls(uri = "") {
   if (!uri) return [];
-  if (/^https?:\/\//i.test(uri)) {
-    return [uri];
-  }
+  if (/^https?:\/\//i.test(uri)) return [uri];
+
   if (uri.startsWith("ipfs://") || isLikelyCid(uri)) {
     const path = uri.replace(/^ipfs:\/\//i, "").replace(/^\/+/, "");
-    const gateways = config.ipfsGateways?.length ? config.ipfsGateways : [config.ipfsGateway];
-    const pathVariants = buildIpfsPathVariants(path);
-    const urls = [];
-    gateways.filter(Boolean).forEach((base) => {
-      const normalizedBase = base.replace(/\/$/, "");
-      pathVariants.forEach((variant) => {
-        urls.push(`${normalizedBase}/${variant}`);
-      });
-    });
-    return Array.from(new Set(urls));
+    return week1Config.ipfsGateways.map((gateway) => `${gateway}${path}`);
   }
+
   return [uri];
-}
-
-function buildIpfsPathVariants(path = "") {
-  if (!path) return [];
-  const variants = new Set([path]);
-  const cleanPath = path.replace(/^\//, "");
-  variants.add(cleanPath);
-
-  const fallbackFiles = config.ipfsPathFallbacks || [];
-  fallbackFiles.forEach((file) => {
-    if (!file) return;
-    variants.add(`${cleanPath}/${file}`);
-  });
-
-  if (!/\.json($|\?)/i.test(cleanPath)) {
-    variants.add(`${cleanPath}.json`);
-  }
-
-  variants.add(`${cleanPath}?filename=metadata.json`);
-  variants.add(`${cleanPath}?filename=token.json`);
-
-  return Array.from(variants);
 }
 
 function isLikelyCid(value = "") {
   if (!value) return false;
   if (value.startsWith("ipfs://")) return true;
-  // CIDv0 starts with Qm, CIDv1 (base32) starts with bafy...
   return /^(?:Qm[1-9A-HJ-NP-Za-km-z]{44,}|bafy[0-9a-z]{50,})$/i.test(value);
 }
 
-function setStatus(message, variant = "info") {
-  if (!els.status) return;
-  els.status.textContent = message;
-  els.status.dataset.variant = variant;
-}
+async function fetchMetadata(urls) {
+  const attempts = Array.isArray(urls) ? urls : [urls];
 
-function saveCache(snapshot) {
-  try {
-    localStorage.setItem(config.cacheKey, JSON.stringify(snapshot));
-  } catch (err) {
-    console.warn("Unable to persist cache", err);
-  }
-}
-
-function readCache() {
-  try {
-    const raw = localStorage.getItem(config.cacheKey);
-    return raw ? JSON.parse(raw) : null;
-  } catch (err) {
-    console.warn("Failed to parse cache", err);
-    return null;
-  }
-}
-
-function initCoffee() {
-  if (!coffeeEls.status) return;
-
-  const mockMemos = mocks?.coffeeMemos;
-  const skipRpc = Boolean(mocks?.skipCoffeeRpc);
-
-  if (coffeeEls.contractLink) {
-    coffeeEls.contractLink.href = `${coffeeConfig.explorer}/address/${coffeeConfig.contractAddress}`;
-    coffeeEls.contractLink.textContent = shortenAddress(coffeeConfig.contractAddress);
-  }
-
-  setCoffeeStatus(`Contract live on ${coffeeConfig.chainName}. Connect your wallet to send a coffee.`);
-
-  coffeeEls.refreshBtn?.addEventListener("click", refreshMemos);
-  coffeeEls.connectBtn?.addEventListener("click", connectCoffeeWallet);
-  coffeeEls.form?.addEventListener("submit", handleCoffeeSubmit);
-
-  if (Array.isArray(mockMemos)) {
-    renderMemos(mockMemos);
-    setCoffeeStatus("Memo board mocked for tests.");
-  }
-  if (skipRpc) return;
-
-  try {
-    ensureEthers();
-    state.coffee.readProvider = new ethers.JsonRpcProvider(coffeeConfig.rpcUrl);
-    state.coffee.readContract = new ethers.Contract(
-      coffeeConfig.contractAddress,
-      coffeeAbi,
-      state.coffee.readProvider,
-    );
-    refreshMemos();
-  } catch (err) {
-    console.error(err);
-    setCoffeeStatus(`Unable to load memos: ${extractErrorMessage(err)}`, "error");
-  }
-}
-
-async function connectCoffeeWallet() {
-  if (state.coffee.connecting) {
-    setCoffeeStatus("Connection already pending in your wallet. Check MetaMask pop-up.", "error");
-    return;
-  }
-  state.coffee.connecting = true;
-  if (typeof window === "undefined" || !window.ethereum) {
-    setCoffeeStatus("No injected wallet detected. Install MetaMask to send a coffee.", "error");
-    return;
-  }
-  ensureEthers();
-
-  try {
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const isCorrectNetwork = await ensureCorrectNetwork(provider);
-    if (!isCorrectNetwork) return;
-
-  const existing = await provider.send("eth_accounts", []);
-  if (existing?.length) {
-      const signer = await provider.getSigner();
-      const address = await signer.getAddress();
-      state.coffee.signer = signer;
-      state.coffee.contract = new ethers.Contract(coffeeConfig.contractAddress, coffeeAbi, signer);
-      state.coffee.account = address;
-      coffeeEls.sendBtn && (coffeeEls.sendBtn.disabled = false);
-      coffeeEls.connectBtn && (coffeeEls.connectBtn.textContent = "Wallet connected");
-      setCoffeeStatus(`Connected as ${shortenAddress(address)} on ${coffeeConfig.chainName}.`);
-      state.coffee.connecting = false;
-      return;
-    }
-
-    let accounts;
+  for (const url of attempts) {
     try {
-      accounts = await provider.send("eth_requestAccounts", []);
+      const res = await fetch(url, { cache: "no-store" });
+      if (res.ok) return await res.json();
     } catch (err) {
-      // Some wallets require wallet_requestPermissions to surface the modal.
-      const alreadyPending = err?.code === -32002 || /already pending/i.test(err?.message || "");
-      if (alreadyPending) {
-        setCoffeeStatus(
-          "A MetaMask request is already open. Open the extension and approve, or reject it before retrying.",
-          "error",
-        );
-        return;
-      }
-      try {
-        await window.ethereum.request?.({
-          method: "wallet_requestPermissions",
-          params: [{ eth_accounts: {} }],
-        });
-        accounts = await provider.send("eth_accounts", []);
-      } catch (innerErr) {
-        throw innerErr;
-      }
+      console.warn(`Failed to fetch ${url}:`, err);
     }
-    if (!accounts?.length) {
-      setCoffeeStatus("Wallet connection was rejected.", "error");
-      return;
-    }
-
-    const signer = await provider.getSigner();
-    const address = await signer.getAddress();
-    state.coffee.signer = signer;
-    state.coffee.contract = new ethers.Contract(coffeeConfig.contractAddress, coffeeAbi, signer);
-    state.coffee.account = address;
-
-    if (coffeeEls.sendBtn) {
-      coffeeEls.sendBtn.disabled = false;
-    }
-    if (coffeeEls.connectBtn) {
-      coffeeEls.connectBtn.textContent = "Wallet connected";
-    }
-
-    setCoffeeStatus(`Connected as ${shortenAddress(address)} on ${coffeeConfig.chainName}.`);
-  } catch (err) {
-    console.error(err);
-    const alreadyPending = err?.code === -32002 || /already pending/i.test(err?.message || "");
-    setCoffeeStatus(
-      alreadyPending
-        ? "A MetaMask connection request is already pending. Open the extension and confirm or close it before retrying."
-        : extractErrorMessage(err),
-      "error",
-    );
-  } finally {
-    state.coffee.connecting = false;
   }
+
+  throw new Error("Metadata fetch failed");
 }
 
-async function ensureCorrectNetwork(provider) {
+async function ensureCorrectNetwork(provider, config) {
   try {
     const network = await provider.getNetwork();
-    if (network?.chainId === coffeeConfig.chainId) return true;
+    if (network?.chainId === config.chainId) return true;
 
-    await provider.send("wallet_switchEthereumChain", [{ chainId: coffeeConfig.chainIdHex }]);
+    await provider.send("wallet_switchEthereumChain", [
+      { chainId: config.chainIdHex },
+    ]);
     return true;
   } catch (err) {
-    setCoffeeStatus(
-      `Switch to ${coffeeConfig.chainName} in your wallet to send a coffee. (${extractErrorMessage(err)})`,
-      "error",
-    );
-    return false;
+    setStatus(week3Els.status, `Switch to ${config.chainName} in your wallet`, "error");
+    throw err;
   }
 }
 
-async function handleCoffeeSubmit(event) {
-  event.preventDefault();
-  if (!state.coffee.contract) {
-    await connectCoffeeWallet();
-    if (!state.coffee.contract) return;
-  }
-
-  const name = (coffeeEls.nameInput?.value || "").trim() || "Anon";
-  const message = (coffeeEls.messageInput?.value || "").trim() || "☕️ Thanks!";
-  const amountRaw = (coffeeEls.amountInput?.value || coffeeConfig.defaultAmountEth).trim();
-  const parsedAmount = safeParseEther(amountRaw || coffeeConfig.defaultAmountEth);
-
-  if (!parsedAmount) {
-    setCoffeeStatus("Enter a valid ETH amount.", "error");
-    return;
-  }
-  if (parsedAmount <= 0n) {
-    setCoffeeStatus("Amount must be greater than 0.", "error");
-    return;
-  }
-
-  try {
-    if (coffeeEls.sendBtn) {
-      coffeeEls.sendBtn.disabled = true;
-    }
-    setCoffeeStatus("Sending coffee…");
-    const tx = await state.coffee.contract.buyCoffee(name, message, { value: parsedAmount });
-    setCoffeeStatus("Waiting for confirmation…");
-    await tx.wait();
-    setCoffeeStatus("Coffee sent! Thanks for the support.", "success");
-    if (coffeeEls.sendBtn) {
-      coffeeEls.sendBtn.disabled = false;
-    }
-    coffeeEls.form?.reset();
-    if (coffeeEls.amountInput) {
-      coffeeEls.amountInput.value = coffeeConfig.defaultAmountEth;
-    }
-    refreshMemos();
-  } catch (err) {
-    console.error(err);
-    if (coffeeEls.sendBtn) {
-      coffeeEls.sendBtn.disabled = false;
-    }
-    setCoffeeStatus(extractErrorMessage(err), "error");
-  }
+function setStatus(element, message, variant = "info") {
+  if (!element) return;
+  element.textContent = message;
+  element.className = variant === "success" ? "form-status form-status--success" :
+                       variant === "error" ? "form-status form-status--error" :
+                       "form-status";
 }
 
-async function refreshMemos() {
-  if (mocks?.skipCoffeeRpc) return;
-  if (!state.coffee.readContract || !coffeeEls.memosList) return;
-  try {
-    const memos = await state.coffee.readContract.memos();
-    renderMemos(memos);
-    const allowStatusUpdate = coffeeEls.status?.dataset?.variant !== "success";
-    if (allowStatusUpdate) {
-      setCoffeeStatus(`Memo board synced from ${coffeeConfig.chainName}.`);
-    }
-  } catch (err) {
-    console.error(err);
-    setCoffeeStatus(`Unable to load memos: ${extractErrorMessage(err)}`, "error");
+function shortenAddress(address = "") {
+  if (!address || typeof address !== "string" || address.length < 10) {
+    return address || "unknown";
   }
-}
-
-function renderMemos(memos) {
-  if (!coffeeEls.memosList) return;
-
-  coffeeEls.memosList.innerHTML = "";
-  if (!Array.isArray(memos) || memos.length === 0) {
-    const empty = document.createElement("li");
-    empty.className = "muted";
-    empty.textContent = "No memos yet. Be the first to buy a coffee.";
-    coffeeEls.memosList.appendChild(empty);
-    return;
-  }
-
-  [...memos]
-    .slice()
-    .reverse()
-    .forEach((memo) => {
-      const item = document.createElement("li");
-      item.className = "memo";
-
-      const header = document.createElement("div");
-      header.className = "memo__meta";
-
-      const name = document.createElement("strong");
-      name.textContent = memo?.name || "Anon";
-
-      const meta = document.createElement("span");
-      const time = memo?.timestamp ? formatTimestamp(Number(memo.timestamp)) : "unknown time";
-      meta.textContent = `${time} · ${shortenAddress(memo?.supporter)}`;
-
-      const message = document.createElement("p");
-      message.className = "memo__message";
-      message.textContent = memo?.message || "(no message)";
-
-      header.append(name, meta);
-      item.append(header, message);
-      coffeeEls.memosList.appendChild(item);
-    });
-}
-
-function setCoffeeStatus(message, variant = "info") {
-  if (!coffeeEls.status) return;
-  coffeeEls.status.textContent = message;
-  coffeeEls.status.dataset.variant = variant;
-}
-
-function shortenAddress(value = "") {
-  if (!value || typeof value !== "string" || value.length < 10) return value || "unknown";
-  return `${value.slice(0, 6)}…${value.slice(-4)}`;
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
 function formatTimestamp(timestamp) {
-  if (!timestamp) return "unknown time";
-  const date = timestamp instanceof Date ? timestamp : new Date(Number(timestamp) * 1000);
-  if (Number.isNaN(date.getTime())) return "unknown time";
-  return date.toLocaleString(undefined, { month: "short", day: "numeric" });
+  if (!timestamp) return "unknown";
+  const date = new Date(Number(timestamp) * 1000);
+  if (Number.isNaN(date.getTime())) return "unknown";
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 function safeParseEther(value) {
@@ -611,14 +735,34 @@ function extractErrorMessage(err) {
 
 function ensureEthers() {
   if (typeof ethers === "undefined") {
-    throw new Error("ethers.js failed to load. Refresh and try again.");
+    throw new Error("ethers.js not loaded");
   }
 }
 
-// Expose minimal handles for test harnesses (no runtime dependency).
-if (typeof window !== "undefined") {
-  window.__APP_PUBLIC = {
-    refreshMemos,
-    setCoffeeStatus,
-  };
+function saveCache(key, data) {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (err) {
+    console.warn("Unable to save cache", err);
+  }
 }
+
+function readCache(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch (err) {
+    console.warn("Failed to read cache", err);
+    return null;
+  }
+}
+
+// ============================================
+// INITIALIZATION
+// ============================================
+
+document.addEventListener("DOMContentLoaded", () => {
+  initWeek1();
+  initWeek2();
+  initWeek3();
+});
