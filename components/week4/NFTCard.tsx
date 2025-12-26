@@ -1,6 +1,6 @@
 "use client"
 
-import { Card } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AlchemyService, type NFT } from "@/lib/alchemy"
@@ -19,19 +19,18 @@ export function NFTCard({ nft, alchemy }: NFTCardProps) {
   const collectionName = nft.contract.name || "Unknown Collection"
 
   return (
-    <Card className="glass overflow-hidden hover:border-accent-purple/50 transition-colors">
-      <div className="relative aspect-square w-full bg-white/5 overflow-hidden">
+    <Card variant="week4" className="overflow-hidden group">
+      <div className="relative aspect-square w-full bg-screen overflow-hidden border-b border-week4/20">
         {imageUrl ? (
           <img
             src={imageUrl}
             alt={name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
             onError={(e) => {
               const target = e.currentTarget as HTMLImageElement
               const currentSrc = target.src
-              
-              // Try alternative IPFS gateways on error
+
               if (currentSrc.includes("cloudflare-ipfs.com")) {
                 const cidMatch = currentSrc.match(/\/ipfs\/([^/?]+)/)
                 if (cidMatch && cidMatch[1]) {
@@ -39,8 +38,7 @@ export function NFTCard({ nft, alchemy }: NFTCardProps) {
                   return
                 }
               }
-              
-              // Try nftstorage.link if cloudflare or ipfs.io failed
+
               if (currentSrc.includes("/ipfs/")) {
                 const cidMatch = currentSrc.match(/\/ipfs\/([^/?]+)/)
                 if (cidMatch && cidMatch[1]) {
@@ -48,8 +46,7 @@ export function NFTCard({ nft, alchemy }: NFTCardProps) {
                   return
                 }
               }
-              
-              // Try gateway.pinata.cloud as last resort
+
               if (currentSrc.includes("/ipfs/")) {
                 const cidMatch = currentSrc.match(/\/ipfs\/([^/?]+)/)
                 if (cidMatch && cidMatch[1]) {
@@ -57,61 +54,64 @@ export function NFTCard({ nft, alchemy }: NFTCardProps) {
                   return
                 }
               }
-              
-              // Final fallback to placeholder
-              target.onerror = null // Prevent infinite loop
-              target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Crect fill='%23111' width='400' height='400'/%3E%3Ctext fill='%23999' font-family='sans-serif' font-size='20' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3ENo Image%3C/text%3E%3C/svg%3E"
+
+              target.onerror = null
+              target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Crect fill='%231b1c22' width='400' height='400'/%3E%3Ctext fill='%238a8b90' font-family='monospace' font-size='16' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3ENO IMAGE%3C/text%3E%3C/svg%3E"
             }}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-muted-foreground">
             <div className="text-center">
-              <p className="text-sm mb-1">No Image URL</p>
-              <p className="text-xs opacity-50">Check console for details</p>
+              <p className="font-mono text-sm">NO IMAGE</p>
             </div>
           </div>
         )}
+        {/* Scanline overlay on hover */}
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity scanlines pointer-events-none" />
       </div>
-      <div className="p-4">
+
+      <CardContent className="p-4">
         <div className="flex items-start justify-between mb-2">
-          <h3 className="font-semibold text-sm line-clamp-2 flex-1">{name}</h3>
+          <h3 className="font-semibold text-sm line-clamp-2 flex-1 group-hover:text-week4 transition-colors">
+            {name}
+          </h3>
           <Link
             href={`https://etherscan.io/nft/${nft.contract.address}/${nft.tokenId}`}
             target="_blank"
             rel="noreferrer"
-            className="ml-2 text-muted-foreground hover:text-foreground transition-colors"
+            className="ml-2 text-muted-foreground hover:text-week4 transition-colors"
           >
             <ExternalLink className="h-4 w-4" />
           </Link>
         </div>
-        <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+        <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
           {description || "No description"}
         </p>
         <div className="flex items-center justify-between">
-          <Badge variant="secondary" className="text-xs">
+          <Badge variant="week4" className="text-[10px] max-w-[120px] truncate">
             {collectionName}
           </Badge>
-          <span className="text-xs text-muted-foreground font-mono">
-            #{nft.tokenId}
+          <span className="font-mono text-xs text-muted-foreground">
+            #{nft.tokenId.length > 8 ? `${nft.tokenId.slice(0, 8)}...` : nft.tokenId}
           </span>
         </div>
-      </div>
+      </CardContent>
     </Card>
   )
 }
 
 export function NFTCardSkeleton() {
   return (
-    <Card className="glass overflow-hidden">
+    <Card variant="week4" className="overflow-hidden">
       <Skeleton className="aspect-square w-full" />
-      <div className="p-4 space-y-2">
+      <CardContent className="p-4 space-y-2">
         <Skeleton className="h-4 w-3/4" />
         <Skeleton className="h-3 w-full" />
-        <div className="flex justify-between">
-          <Skeleton className="h-4 w-20" />
+        <div className="flex justify-between pt-1">
+          <Skeleton className="h-5 w-20" />
           <Skeleton className="h-4 w-16" />
         </div>
-      </div>
+      </CardContent>
     </Card>
   )
 }

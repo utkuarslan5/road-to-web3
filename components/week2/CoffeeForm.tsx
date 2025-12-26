@@ -1,11 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { Card } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
 import { useWallet } from "@/hooks/useWallet"
 import { useContract } from "@/hooks/useContract"
 import { WEEK2_CONFIG, COFFEE_ABI } from "@/lib/contracts"
@@ -41,7 +42,7 @@ export function CoffeeForm() {
     try {
       setSending(true)
       const parsedAmount = parseEther(amount)
-      
+
       const tx = await sendTransaction("buyCoffee", finalName, finalMessage, {
         value: parsedAmount,
       })
@@ -55,7 +56,7 @@ export function CoffeeForm() {
 
       toast({
         title: "Coffee sent!",
-        description: "Thanks for supporting 🎉",
+        description: "Thanks for supporting!",
       })
 
       setName("")
@@ -73,66 +74,80 @@ export function CoffeeForm() {
   }
 
   return (
-    <Card className="glass p-6">
-      <div className="flex items-center justify-between mb-6">
-        <span className="text-sm font-semibold">SEND A TIP</span>
-        <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-xs font-semibold">
-          Sepolia
-        </span>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <Label htmlFor="coffee-name">Your Name</Label>
-          <Input
-            id="coffee-name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Anonymous Supporter"
-          />
+    <Card variant="week2">
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <Badge variant="week2">SEND A TIP</Badge>
+          <Badge variant="outline">Sepolia</Badge>
         </div>
 
-        <div>
-          <Label htmlFor="coffee-message">Message</Label>
-          <Textarea
-            id="coffee-message"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Leave an encouraging message..."
-            rows={3}
-          />
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-2">
+            <Label htmlFor="coffee-name" className="font-mono text-xs tracking-wider uppercase">
+              Your Name
+            </Label>
+            <Input
+              id="coffee-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Anonymous Supporter"
+              className="border-week2/30 focus-visible:border-week2 focus-visible:ring-week2/20 focus-visible:shadow-glow-week2"
+            />
+          </div>
 
-        <div>
-          <Label htmlFor="coffee-amount">Amount (ETH)</Label>
-          <Input
-            id="coffee-amount"
-            type="number"
-            min="0.0001"
-            step="0.0001"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-          />
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="coffee-message" className="font-mono text-xs tracking-wider uppercase">
+              Message
+            </Label>
+            <Textarea
+              id="coffee-message"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Leave an encouraging message..."
+              rows={3}
+              className="border-week2/30 focus-visible:border-week2 focus-visible:ring-week2/20 focus-visible:shadow-glow-week2"
+            />
+          </div>
 
-        <div className="flex gap-3">
-          {!wallet.isConnected ? (
-            <Button
-              type="button"
-              onClick={() => wallet.connect()}
-              disabled={wallet.isConnecting}
-              className="flex-1"
-            >
-              {wallet.isConnecting ? "Connecting..." : "Connect Wallet"}
-            </Button>
-          ) : (
-            <Button type="submit" disabled={sending} className="flex-1">
-              {sending ? "Sending..." : "Send Coffee ☕"}
-            </Button>
-          )}
-        </div>
-      </form>
+          <div className="space-y-2">
+            <Label htmlFor="coffee-amount" className="font-mono text-xs tracking-wider uppercase">
+              Amount (ETH)
+            </Label>
+            <Input
+              id="coffee-amount"
+              type="number"
+              min="0.0001"
+              step="0.0001"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="font-mono border-week2/30 focus-visible:border-week2 focus-visible:ring-week2/20 focus-visible:shadow-glow-week2"
+            />
+          </div>
+
+          <div className="pt-2">
+            {!wallet.isConnected ? (
+              <Button
+                type="button"
+                variant="week2"
+                onClick={() => wallet.connect()}
+                disabled={wallet.isConnecting}
+                className="w-full"
+              >
+                {wallet.isConnecting ? "CONNECTING..." : "CONNECT WALLET"}
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                variant="week2"
+                disabled={sending}
+                className="w-full"
+              >
+                {sending ? "SENDING..." : "SEND COFFEE"}
+              </Button>
+            )}
+          </div>
+        </form>
+      </CardContent>
     </Card>
   )
 }
-

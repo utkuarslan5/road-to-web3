@@ -2,6 +2,7 @@
 
 import { NFTCard, NFTCardSkeleton } from "./NFTCard"
 import { AlchemyService, type NFT } from "@/lib/alchemy"
+import { Image } from "lucide-react"
 
 interface NFTGridProps {
   nfts: NFT[]
@@ -22,9 +23,10 @@ export function NFTGrid({ nfts, alchemy, loading }: NFTGridProps) {
 
   if (nfts.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground text-lg mb-2">No NFTs found</p>
-        <p className="text-sm text-muted-foreground">
+      <div className="text-center py-16">
+        <Image className="h-16 w-16 text-week4/30 mx-auto mb-4" />
+        <p className="font-mono text-lg text-muted-foreground mb-2">NO NFTs FOUND</p>
+        <p className="text-sm text-muted-foreground/60">
           Try searching with a different address
         </p>
       </div>
@@ -39,4 +41,3 @@ export function NFTGrid({ nfts, alchemy, loading }: NFTGridProps) {
     </div>
   )
 }
-

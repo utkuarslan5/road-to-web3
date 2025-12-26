@@ -1,17 +1,18 @@
 "use client"
 
 import { useState } from "react"
-import { Card } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
 import { useWallet } from "@/hooks/useWallet"
 import { useContract } from "@/hooks/useContract"
 import { WEEK3_CONFIG, CHAIN_BATTLES_ABI } from "@/lib/contracts"
 import { POLYGON_AMOY } from "@/config/chains"
 import { extractErrorMessage } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
-import { Plus, TrendingUp, Sword } from "lucide-react"
+import { Plus, TrendingUp, Eye } from "lucide-react"
 
 export function WarriorActions({
   currentTokenId,
@@ -54,7 +55,6 @@ export function WarriorActions({
         title: "Warrior minted!",
         description: "Your warrior has been created successfully",
       })
-      // Call success callback to refresh NFT list
       if (onMintSuccess) {
         await onMintSuccess()
       }
@@ -89,52 +89,27 @@ export function WarriorActions({
       await tx.wait()
       toast({
         title: "Warrior trained!",
-        description: "Your warrior's stats have increased 💪",
+        description: "Your warrior's stats have increased!",
       })
-      // Call success callback and refresh
       if (onTrainSuccess) {
         onTrainSuccess()
       }
-      onTokenChange(currentTokenId) // Refresh
+      onTokenChange(currentTokenId)
     } catch (error: any) {
       const message = extractErrorMessage(error)
       const errorString = JSON.stringify(error).toLowerCase()
-      
-      // Check for cooldown errors with various patterns
-      const cooldownPatterns = [
-        /cooldown/i,
-        /CooldownActive/i,
-        /wait.*before/i,
-        /not ready/i,
-      ]
-      
-      const isCooldownError = cooldownPatterns.some(pattern => 
+
+      const cooldownPatterns = [/cooldown/i, /CooldownActive/i, /wait.*before/i, /not ready/i]
+      const isCooldownError = cooldownPatterns.some(pattern =>
         pattern.test(message) || pattern.test(errorString)
       )
-      
-      // Check for insufficient funds errors
-      const insufficientFundsPatterns = [
-        /insufficient funds/i,
-        /insufficient balance/i,
-        /not enough funds/i,
-        /balance too low/i,
-      ]
-      
+
+      const insufficientFundsPatterns = [/insufficient funds/i, /insufficient balance/i]
       const isInsufficientFunds = insufficientFundsPatterns.some(pattern =>
         pattern.test(message) || pattern.test(errorString)
       )
-      
-      // Check for JSON-RPC/internal errors
-      const isRpcError = 
-        message.includes("JSON-RPC") ||
-        message.includes("Internal JSON-RPC") ||
-        message.includes("-32603") ||
-        errorString.includes("json-rpc") ||
-        errorString.includes("internal error") ||
-        errorString.includes("could not coalesce")
-      
+
       if (isCooldownError) {
-        // Try to get remaining time from stats
         try {
           const stats = await call("statsOf", currentTokenId)
           if (stats && stats.lastAction) {
@@ -142,70 +117,39 @@ export function WarriorActions({
             const cooldownEnd = lastAction + WEEK3_CONFIG.cooldownSeconds
             const now = Math.floor(Date.now() / 1000)
             const remaining = cooldownEnd - now
-            
+
             if (remaining > 0) {
               const minutes = Math.floor(remaining / 60)
               const seconds = remaining % 60
-              const timeStr = minutes > 0 
-                ? `${minutes}m ${seconds}s` 
-                : `${seconds}s`
-              
+              const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`
+
               toast({
-                title: "⏱️ Training Cooldown",
-                description: `Please wait ${timeStr} before training again. Your warrior needs rest!`,
-                variant: "default",
+                title: "Training Cooldown",
+                description: `Wait ${timeStr} before training again`,
               })
             } else {
               toast({
-                title: "⏱️ Training Cooldown",
-                description: "Please wait a moment before training again. Your warrior needs rest!",
-                variant: "default",
+                title: "Training Cooldown",
+                description: "Please wait a moment before training again",
               })
             }
-          } else {
-            toast({
-              title: "⏱️ Training Cooldown",
-              description: "Please wait 60 seconds before training again. Your warrior needs rest!",
-              variant: "default",
-            })
           }
         } catch {
-          // Fallback if we can't get stats
           toast({
-            title: "⏱️ Training Cooldown",
-            description: "Please wait 60 seconds before training again. Your warrior needs rest!",
-            variant: "default",
+            title: "Training Cooldown",
+            description: "Please wait 60 seconds before training again",
           })
         }
       } else if (isInsufficientFunds) {
         toast({
-          title: "💰 Insufficient Funds",
-          description: "You don't have enough MATIC to pay for gas. Please add more funds to your wallet.",
-          variant: "destructive",
-        })
-      } else if (isRpcError) {
-        toast({
-          title: "⚠️ Network Error",
-          description: "There was a problem connecting to the network. Please check your connection and try again in a moment.",
+          title: "Insufficient Funds",
+          description: "You need more MATIC to pay for gas",
           variant: "destructive",
         })
       } else {
-        // Generic error - try to make it more user-friendly
-        let friendlyMessage = message
-        
-        // Remove technical details
-        if (message.includes("execution reverted")) {
-          friendlyMessage = "Transaction was rejected. Please check if you own this warrior and try again."
-        } else if (message.includes("user rejected") || message.includes("User denied")) {
-          friendlyMessage = "Transaction was cancelled. Please try again when ready."
-        } else if (message.length > 100) {
-          // If message is too long/technical, provide a generic one
-          friendlyMessage = "Something went wrong. Please try again or check your wallet connection."
-        }
-        
         toast({
           title: "Error",
-          description: friendlyMessage,
+          description: message.length > 100 ? "Something went wrong. Please try again." : message,
           variant: "destructive",
         })
       }
@@ -228,73 +172,82 @@ export function WarriorActions({
   }
 
   return (
-    <Card className="glass p-6">
-      <h3 className="text-xl font-bold mb-4">Actions</h3>
+    <Card variant="week3">
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="font-display text-xl">Actions</h3>
+          <Badge variant="week3">GAME</Badge>
+        </div>
 
-      <div className="space-y-4">
-        {!wallet.isConnected ? (
-          <Button
-            onClick={() => wallet.connect()}
-            disabled={wallet.isConnecting}
-            className="w-full"
-          >
-            {wallet.isConnecting ? "Connecting..." : "Connect Wallet"}
-          </Button>
-        ) : (
-          <>
-            <div>
-              <Button
-                onClick={handleMint}
-                disabled={minting}
-                className="w-full"
-                variant="secondary"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                {minting ? "Minting..." : "Mint Warrior"}
-              </Button>
-              <p className="text-xs text-muted-foreground mt-2">
-                Mint your first Chain Battles warrior
-              </p>
-            </div>
-
-            <div>
-              <Button
-                onClick={handleTrain}
-                disabled={training || !currentTokenId}
-                className="w-full"
-                variant="secondary"
-              >
-                <TrendingUp className="mr-2 h-4 w-4" />
-                {training ? "Training..." : "Train Warrior"}
-              </Button>
-              <p className="text-xs text-muted-foreground mt-2">
-                Increase your warrior's stats (60s cooldown)
-              </p>
-            </div>
-
-            <div>
-              <Label htmlFor="token-input">View Token ID</Label>
-              <div className="flex gap-2 mt-2">
-                <Input
-                  id="token-input"
-                  type="number"
-                  placeholder="Enter token ID"
-                  min="1"
-                  value={viewTokenId}
-                  onChange={(e) => setViewTokenId(e.target.value)}
-                />
-                <Button onClick={handleView} variant="outline">
-                  View
+        <div className="space-y-4">
+          {!wallet.isConnected ? (
+            <Button
+              variant="week3"
+              onClick={() => wallet.connect()}
+              disabled={wallet.isConnecting}
+              className="w-full"
+            >
+              {wallet.isConnecting ? "CONNECTING..." : "CONNECT WALLET"}
+            </Button>
+          ) : (
+            <>
+              <div>
+                <Button
+                  onClick={handleMint}
+                  disabled={minting}
+                  variant="outline"
+                  className="w-full border-week3/50 hover:border-week3 hover:bg-week3/10 hover:text-week3"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  {minting ? "MINTING..." : "MINT WARRIOR"}
                 </Button>
+                <p className="font-mono text-xs text-muted-foreground mt-2">
+                  Create a new Chain Battles warrior
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                View any minted warrior
-              </p>
-            </div>
-          </>
-        )}
-      </div>
+
+              <div>
+                <Button
+                  onClick={handleTrain}
+                  disabled={training || !currentTokenId}
+                  variant="week3"
+                  className="w-full"
+                >
+                  <TrendingUp className="mr-2 h-4 w-4" />
+                  {training ? "TRAINING..." : "TRAIN WARRIOR"}
+                </Button>
+                <p className="font-mono text-xs text-muted-foreground mt-2">
+                  Increase stats (60s cooldown)
+                </p>
+              </div>
+
+              <div className="pt-2 border-t border-border">
+                <Label htmlFor="token-input" className="font-mono text-xs tracking-wider uppercase">
+                  View Token
+                </Label>
+                <div className="flex gap-2 mt-2">
+                  <Input
+                    id="token-input"
+                    type="number"
+                    placeholder="#"
+                    min="1"
+                    value={viewTokenId}
+                    onChange={(e) => setViewTokenId(e.target.value)}
+                    className="font-mono border-week3/30 focus-visible:border-week3"
+                  />
+                  <Button
+                    onClick={handleView}
+                    variant="outline"
+                    className="border-week3/50 hover:border-week3"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </CardContent>
     </Card>
   )
 }
-

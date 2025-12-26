@@ -1,42 +1,75 @@
 "use client"
 
-import { Card } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { WEEK1_CONFIG } from "@/lib/contracts"
 import { truncateAddress } from "@/lib/utils"
 import Link from "next/link"
 
 export function ContractDetails() {
   return (
-    <Card className="glass p-6">
-      <h3 className="text-xl font-bold mb-4">Contract Details</h3>
-      <dl className="space-y-3">
-        <div>
-          <dt className="text-sm text-muted-foreground mb-1">Contract Address</dt>
-          <dd>
-            <Link
-              href={`https://sepolia.etherscan.io/address/${WEEK1_CONFIG.contractAddress}`}
-              target="_blank"
-              rel="noreferrer"
-              className="font-mono text-sm hover:text-accent-cyan transition-colors"
-            >
-              {truncateAddress(WEEK1_CONFIG.contractAddress)}
-            </Link>
-          </dd>
+    <Card variant="week1">
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="font-display text-xl">Contract Details</h3>
+          <Badge variant="week1">ERC-721</Badge>
         </div>
-        <div>
-          <dt className="text-sm text-muted-foreground mb-1">Token Standard</dt>
-          <dd className="text-sm">ERC-721</dd>
-        </div>
-        <div>
-          <dt className="text-sm text-muted-foreground mb-1">Token ID</dt>
-          <dd className="text-sm">#{WEEK1_CONFIG.tokenId}</dd>
-        </div>
-        <div>
-          <dt className="text-sm text-muted-foreground mb-1">Network</dt>
-          <dd className="text-sm">Sepolia (Chain ID: 11155111)</dd>
-        </div>
-      </dl>
+
+        <dl className="space-y-4">
+          <DetailRow
+            label="CONTRACT"
+            value={
+              <Link
+                href={`https://sepolia.etherscan.io/address/${WEEK1_CONFIG.contractAddress}`}
+                target="_blank"
+                rel="noreferrer"
+                className="font-mono text-sm text-week1 hover:text-neon-cyan transition-colors hover:underline"
+              >
+                {truncateAddress(WEEK1_CONFIG.contractAddress)}
+              </Link>
+            }
+          />
+          <DetailRow
+            label="TOKEN ID"
+            value={
+              <span className="font-mono text-sm text-foreground">
+                #{WEEK1_CONFIG.tokenId}
+              </span>
+            }
+          />
+          <DetailRow
+            label="NETWORK"
+            value={
+              <span className="text-sm text-foreground">
+                Sepolia <span className="text-muted-foreground">(11155111)</span>
+              </span>
+            }
+          />
+          <DetailRow
+            label="STANDARD"
+            value={
+              <span className="text-sm text-foreground">ERC-721</span>
+            }
+          />
+        </dl>
+      </CardContent>
     </Card>
   )
 }
 
+function DetailRow({
+  label,
+  value,
+}: {
+  label: string
+  value: React.ReactNode
+}) {
+  return (
+    <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+      <dt className="font-mono text-xs tracking-wider text-muted-foreground uppercase">
+        {label}
+      </dt>
+      <dd>{value}</dd>
+    </div>
+  )
+}

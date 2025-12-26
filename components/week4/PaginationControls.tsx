@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
 interface PaginationControlsProps {
@@ -26,27 +27,25 @@ export function PaginationControls({
         variant="outline"
         onClick={onPrevious}
         disabled={!hasPrevious || loading}
-        className="flex items-center gap-2"
+        className="border-week4/50 hover:border-week4 hover:bg-week4/10 hover:text-week4 disabled:opacity-30"
       >
-        <ChevronLeft className="h-4 w-4" />
-        Previous
+        <ChevronLeft className="h-4 w-4 mr-1" />
+        PREV
       </Button>
-      
-      <span className="text-sm font-medium text-muted-foreground min-w-[80px] text-center">
-        Page {currentPage}
-      </span>
-      
+
+      <Badge variant="week4" className="px-4 py-1.5 font-mono">
+        PAGE {currentPage}
+      </Badge>
+
       <Button
         variant="outline"
         onClick={onNext}
         disabled={!hasNext || loading}
-        className="flex items-center gap-2"
+        className="border-week4/50 hover:border-week4 hover:bg-week4/10 hover:text-week4 disabled:opacity-30"
       >
-        Next
-        <ChevronRight className="h-4 w-4" />
+        NEXT
+        <ChevronRight className="h-4 w-4 ml-1" />
       </Button>
     </div>
   )
 }
-
-

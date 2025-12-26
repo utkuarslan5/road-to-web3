@@ -1,15 +1,16 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useContract } from "@/hooks/useContract"
 import { WEEK2_CONFIG, COFFEE_ABI } from "@/lib/contracts"
 import { getProvider, getContract } from "@/lib/ethers"
 import { ethers } from "ethers"
 import { formatDistanceToNow } from "date-fns"
-import { RefreshCw } from "lucide-react"
+import { RefreshCw, Coffee } from "lucide-react"
 
 interface Memo {
   supporter: string
@@ -40,17 +41,14 @@ export function MemoBoard() {
 
       const provider = getProvider() || new ethers.JsonRpcProvider(WEEK2_CONFIG.rpcUrl)
       const contract = getContract(WEEK2_CONFIG.contractAddress, COFFEE_ABI, provider)
-      
+
       let memosData: Memo[] = []
       try {
         memosData = await contract.memos() as Memo[]
       } catch (callErr: any) {
-        // If error is "could not decode result data" with value="0x", treat as empty array
-        // This happens when the contract returns empty data (no memos yet)
         if (callErr.code === 'BAD_DATA' && (callErr.value === '0x' || callErr.info?.method === 'memos')) {
           memosData = []
         } else {
-          // Re-throw other errors
           throw callErr
         }
       }
@@ -68,56 +66,69 @@ export function MemoBoard() {
   }, [])
 
   return (
-    <Card className="glass p-6">
-      <div className="flex items-center justify-between mb-6">
-        <span className="text-sm font-semibold">MEMO BOARD</span>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={fetchMemos}
-          disabled={loading}
-        >
-          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-        </Button>
-      </div>
+    <Card variant="week2">
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <Badge variant="week2">MEMO BOARD</Badge>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={fetchMemos}
+            disabled={loading}
+            className="hover:text-week2"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
 
-      <div className="space-y-4 max-h-[600px] overflow-y-auto">
-        {loading ? (
-          <>
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-24 w-full" />
-          </>
-        ) : error ? (
-          <p className="text-destructive text-center">{error}</p>
-        ) : memos.length === 0 ? (
-          <p className="text-muted-foreground text-center py-8">
-            No memos yet. Be the first to send a coffee!
-          </p>
-        ) : (
-          [...memos]
-            .reverse()
-            .map((memo, index) => (
-              <div
-                key={index}
-                className="p-4 rounded-lg bg-white/5 border border-white/10"
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <p className="font-semibold">{memo.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(Number(memo.timestamp) * 1000, {
-                        addSuffix: true,
-                      })}
-                    </p>
+        <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 scrollbar-thin">
+          {loading ? (
+            <>
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-24 w-full" />
+            </>
+          ) : error ? (
+            <div className="text-center py-8">
+              <p className="font-mono text-sm text-destructive">ERROR: {error}</p>
+            </div>
+          ) : memos.length === 0 ? (
+            <div className="text-center py-12">
+              <Coffee className="h-12 w-12 text-week2/50 mx-auto mb-4" />
+              <p className="text-muted-foreground font-mono text-sm">
+                NO MEMOS YET
+              </p>
+              <p className="text-muted-foreground/60 text-xs mt-1">
+                Be the first to send a coffee!
+              </p>
+            </div>
+          ) : (
+            [...memos]
+              .reverse()
+              .map((memo, index) => (
+                <div
+                  key={index}
+                  className="p-4 rounded-lg bg-screen border border-week2/20 hover:border-week2/40 transition-colors"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <p className="font-semibold text-foreground">{memo.name}</p>
+                      <p className="font-mono text-xs text-muted-foreground">
+                        {formatDistanceToNow(Number(memo.timestamp) * 1000, {
+                          addSuffix: true,
+                        })}
+                      </p>
+                    </div>
+                    <Coffee className="h-4 w-4 text-week2" />
                   </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {memo.message}
+                  </p>
                 </div>
-                <p className="text-sm text-muted-foreground">{memo.message}</p>
-              </div>
-            ))
-        )}
-      </div>
+              ))
+          )}
+        </div>
+      </CardContent>
     </Card>
   )
 }
-

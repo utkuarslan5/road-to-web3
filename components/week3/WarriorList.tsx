@@ -1,6 +1,6 @@
 "use client"
 
-import { Card } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { RARITY_LABELS } from "@/lib/contracts"
@@ -8,6 +8,7 @@ import { getProvider, getContract } from "@/lib/ethers"
 import { WEEK3_CONFIG, CHAIN_BATTLES_ABI } from "@/lib/contracts"
 import { ethers } from "ethers"
 import { useEffect, useState } from "react"
+import { Swords } from "lucide-react"
 
 interface WarriorCardProps {
   tokenId: number
@@ -38,7 +39,6 @@ function WarriorCard({ tokenId, isSelected, onClick, refreshKey }: WarriorCardPr
           rarity: Number(statsData.rarity),
         })
 
-        // Parse SVG from tokenURI
         if (tokenURI.startsWith("data:application/json;base64,")) {
           const json = JSON.parse(atob(tokenURI.split(",")[1]))
           if (json.image) {
@@ -63,43 +63,49 @@ function WarriorCard({ tokenId, isSelected, onClick, refreshKey }: WarriorCardPr
 
   if (loading) {
     return (
-      <Card className={`p-3 cursor-pointer transition-all ${isSelected ? "ring-2 ring-accent-cyan" : ""}`}>
-        <Skeleton className="w-full aspect-square mb-2" />
+      <div className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
+        isSelected ? "border-week3 shadow-glow-week3" : "border-border"
+      }`}>
+        <Skeleton className="w-full aspect-square rounded mb-2" />
         <Skeleton className="h-4 w-16 mb-1" />
         <Skeleton className="h-3 w-24" />
-      </Card>
+      </div>
     )
   }
 
   return (
-    <Card
-      className={`p-3 cursor-pointer transition-all hover:scale-105 ${
-        isSelected ? "ring-2 ring-accent-cyan bg-accent-cyan/10" : ""
+    <div
+      className={`p-3 rounded-lg border-2 cursor-pointer transition-all hover:scale-[1.02] bg-screen ${
+        isSelected
+          ? "border-week3 shadow-glow-week3 bg-week3/10"
+          : "border-border hover:border-week3/50"
       }`}
       onClick={onClick}
     >
-      <div className="w-full aspect-square rounded overflow-hidden bg-white/5 mb-2">
+      <div className="w-full aspect-square rounded overflow-hidden bg-cabinet mb-2">
         {svgData ? (
           <div
             className="w-full h-full"
             dangerouslySetInnerHTML={{ __html: svgData }}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
-            #{tokenId}
+          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+            <span className="font-mono text-xs">#{tokenId}</span>
           </div>
         )}
       </div>
-      <div className="text-xs font-semibold mb-1">#{tokenId}</div>
+      <div className="font-mono text-xs font-bold text-week3 mb-1">#{tokenId}</div>
       {stats && (
-        <div className="flex items-center gap-2 text-xs">
-          <Badge variant="secondary" className="text-xs">
-            Lv.{stats.level}
+        <div className="flex items-center gap-2">
+          <Badge variant="week3" className="text-[10px] px-1.5 py-0">
+            LV.{stats.level}
           </Badge>
-          <span className="text-muted-foreground">{RARITY_LABELS[stats.rarity]}</span>
+          <span className="font-mono text-[10px] text-muted-foreground">
+            {RARITY_LABELS[stats.rarity]}
+          </span>
         </div>
       )}
-    </Card>
+    </div>
   )
 }
 
@@ -117,56 +123,70 @@ export function WarriorList({ tokenIds, loading, error, selectedTokenId, onSelec
 
   if (loading) {
     return (
-      <Card className="glass p-6">
-        <h3 className="text-xl font-bold mb-4">{title || "Warriors"}</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} className="w-full aspect-square" />
-          ))}
-        </div>
+      <Card variant="week3">
+        <CardContent className="p-6">
+          <h3 className="font-display text-xl mb-4">{title || "Warriors"}</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="w-full aspect-square" />
+            ))}
+          </div>
+        </CardContent>
       </Card>
     )
   }
 
   if (error) {
     return (
-      <Card className="glass p-6">
-        <h3 className="text-xl font-bold mb-4">{title || "Warriors"}</h3>
-        <div className="text-center text-destructive py-4">
-          <p>{error}</p>
-        </div>
+      <Card variant="week3">
+        <CardContent className="p-6">
+          <h3 className="font-display text-xl mb-4">{title || "Warriors"}</h3>
+          <div className="text-center py-8">
+            <p className="font-mono text-sm text-destructive">{error}</p>
+          </div>
+        </CardContent>
       </Card>
     )
   }
 
   if (tokenIds.length === 0) {
     return (
-      <Card className="glass p-6">
-        <h3 className="text-xl font-bold mb-4">{title || "Warriors"}</h3>
-        <div className="text-center text-muted-foreground py-8">
-          <p>No warriors found. Mint your first warrior to get started!</p>
-        </div>
+      <Card variant="week3">
+        <CardContent className="p-6">
+          <h3 className="font-display text-xl mb-4">{title || "Warriors"}</h3>
+          <div className="text-center py-12">
+            <Swords className="h-12 w-12 text-week3/30 mx-auto mb-4" />
+            <p className="font-mono text-sm text-muted-foreground">
+              NO WARRIORS FOUND
+            </p>
+            <p className="text-xs text-muted-foreground/60 mt-1">
+              Mint your first warrior to get started!
+            </p>
+          </div>
+        </CardContent>
       </Card>
     )
   }
 
   return (
-    <Card className="glass p-6">
-      <h3 className="text-xl font-bold mb-4">
-        {title || "Warriors"} ({tokenIds.length})
-      </h3>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        {tokenIds.map((tokenId) => (
-          <WarriorCard
-            key={`${tokenId}-${refreshKey || 0}`}
-            tokenId={tokenId}
-            isSelected={selectedTokenId === tokenId}
-            onClick={() => onSelectToken(tokenId)}
-            refreshKey={refreshKey}
-          />
-        ))}
-      </div>
+    <Card variant="week3">
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-display text-xl">{title || "Warriors"}</h3>
+          <Badge variant="week3">{tokenIds.length} OWNED</Badge>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {tokenIds.map((tokenId) => (
+            <WarriorCard
+              key={`${tokenId}-${refreshKey || 0}`}
+              tokenId={tokenId}
+              isSelected={selectedTokenId === tokenId}
+              onClick={() => onSelectToken(tokenId)}
+              refreshKey={refreshKey}
+            />
+          ))}
+        </div>
+      </CardContent>
     </Card>
   )
 }
-
