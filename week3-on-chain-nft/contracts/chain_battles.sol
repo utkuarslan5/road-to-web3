@@ -8,6 +8,14 @@ import "@openzeppelin/contracts/utils/Base64.sol";
 contract ChainBattles is ERC721URIStorage {
     using Strings for uint256;
 
+    // Custom errors for gas savings
+    error TokenDoesNotExist();
+    error NotTokenOwner();
+    error CooldownActive();
+    error SameToken();
+    error AttackerMissing();
+    error DefenderMissing();
+
     uint256 private _nextTokenId;
 
     /// @notice core state for each warrior
@@ -45,10 +53,9 @@ contract ChainBattles is ERC721URIStorage {
     }
 
     function train(uint256 tokenId) external {
-        require(_ownerOf(tokenId) != address(0), "Token does not exist");
-        require(ownerOf(tokenId) == msg.sender, "Not token owner");
+        if (ownerOf(tokenId) != msg.sender) revert NotTokenOwner();
         Stats storage s = _stats[tokenId];
-        require(block.timestamp >= s.lastAction + TRAIN_COOLDOWN, "Cooldown");
+        if (block.timestamp < s.lastAction + TRAIN_COOLDOWN) revert CooldownActive();
 
         // deterministic-ish growth with some variance
         uint256 rand = uint256(
@@ -72,14 +79,12 @@ contract ChainBattles is ERC721URIStorage {
     }
 
     function battle(uint256 attackerId, uint256 defenderId) external returns (bool attackerWon) {
-        require(attackerId != defenderId, "Same token");
-        require(_ownerOf(attackerId) != address(0), "Attacker missing");
-        require(_ownerOf(defenderId) != address(0), "Defender missing");
-        require(ownerOf(attackerId) == msg.sender, "Not attacker owner");
-
+        if (attackerId == defenderId) revert SameToken();
+        if (ownerOf(attackerId) != msg.sender) revert NotTokenOwner();
+        
         Stats storage a = _stats[attackerId];
         Stats storage d = _stats[defenderId];
-        require(block.timestamp >= a.lastAction + TRAIN_COOLDOWN, "Cooldown");
+        if (block.timestamp < a.lastAction + TRAIN_COOLDOWN) revert CooldownActive();
 
         uint256 rand = uint256(
             keccak256(
@@ -116,23 +121,20 @@ contract ChainBattles is ERC721URIStorage {
     }
 
     function statsOf(uint256 tokenId) external view returns (Stats memory) {
-        require(_ownerOf(tokenId) != address(0), "Token does not exist");
+        if (_ownerOf(tokenId) == address(0)) revert TokenDoesNotExist();
         return _stats[tokenId];
     }
 
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
-        require(_ownerOf(tokenId) != address(0), "Token does not exist");
+        if (_ownerOf(tokenId) == address(0)) revert TokenDoesNotExist();
         return _buildTokenURI(tokenId);
     }
 
     function _buildTokenURI(uint256 tokenId) private view returns (string memory) {
         string memory image = _buildCharacterSVG(tokenId);
+        string memory tokenIdStr = tokenId.toString();
         bytes memory dataURI = abi.encodePacked(
-            "{",
-                '"name":"Chain Battles #', tokenId.toString(), '",',
-                '"description":"On-chain warriors that train, duel, and evolve. Cooldowns, rarity, battle log all on-chain.",',
-                '"image":"', image, '"',
-            "}"
+            '{"name":"Chain Battles #', tokenIdStr, '","description":"On-chain warriors that train, duel, and evolve.","image":"', image, '"}'
         );
         return string(
             abi.encodePacked(
@@ -142,69 +144,39 @@ contract ChainBattles is ERC721URIStorage {
         );
     }
 
-    // SVG render packs core stats and rarity glow
+    // Simplified SVG for gas optimization
     function _buildCharacterSVG(uint256 tokenId) private view returns (string memory) {
         Stats memory s = _stats[tokenId];
+        string memory tokenIdStr = tokenId.toString();
+        string memory levelStr = uint256(s.level).toString();
+        string memory powerStr = _barWidth(s.power, 120);
+        string memory agilityStr = _barWidth(s.agility, 100);
+        string memory vitalityStr = _barWidth(s.vitality, 140);
+        string memory victoriesStr = uint256(s.victories).toString();
+        string memory defeatsStr = uint256(s.defeats).toString();
+        string memory rarityStr = _rarityLabel(s.rarity);
+        string memory cooldownStr = _cooldownText(s.lastAction);
+        
         bytes memory svg = abi.encodePacked(
-            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 380" preserveAspectRatio="xMinYMin meet">',
-            '<defs>',
-                '<linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">',
-                    '<stop offset="0%" stop-color="#0f172a" />',
-                    '<stop offset="50%" stop-color="#1e3a8a" />',
-                    '<stop offset="100%" stop-color="#22d3ee" />',
-                '</linearGradient>',
-                '<linearGradient id="frame" x1="0%" y1="0%" x2="100%" y2="100%">',
-                    '<stop offset="0%" stop-color="#22d3ee" />',
-                    '<stop offset="50%" stop-color="#a855f7" />',
-                    '<stop offset="100%" stop-color="#f97316" />',
-                '</linearGradient>',
-                '<linearGradient id="bar" x1="0%" y1="0%" x2="100%" y2="0%">',
-                    '<stop offset="0%" stop-color="#22d3ee" />',
-                    '<stop offset="100%" stop-color="#a855f7" />',
-                '</linearGradient>',
-                '<radialGradient id="halo" cx="50%" cy="40%" r="60%">',
-                    '<stop offset="0%" stop-color="rgba(255,255,255,0.4)" />',
-                    '<stop offset="100%" stop-color="rgba(255,255,255,0)" />',
-                '</radialGradient>',
-                '<filter id="glow" x="-20%" y="-20%" width="140%" height="140%">',
-                    '<feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#22d3ee" flood-opacity="0.6" />',
-                '</filter>',
-            '</defs>',
-            '<rect width="100%" height="100%" fill="url(#bg)"/>',
-            '<rect x="18" y="18" width="344" height="344" rx="18" fill="#0b1224" opacity="0.85" stroke="url(#frame)" stroke-width="3" filter="url(#glow)"/>',
-            '<circle cx="190" cy="135" r="95" fill="url(#halo)" />',
-            '<style>',
-                '.title{fill:#e0f2fe;font-family:\"Trebuchet MS\",sans-serif;font-size:20px;font-weight:700;letter-spacing:1.2px;}',
-                '.stat{fill:#e2e8f0;font-family:\"Trebuchet MS\",sans-serif;font-size:16px;}',
-                '.label{fill:#94a3b8;font-family:\"Trebuchet MS\",sans-serif;font-size:12px;letter-spacing:1px;}',
-                '.small{fill:#94a3b8;font-family:\"Trebuchet MS\",sans-serif;font-size:10px;}',
-            '</style>',
-            '<text x="50%" y="70" class="title" text-anchor="middle" dominant-baseline="middle">CHAIN WARRIOR</text>',
-            '<text x="50%" y="98" class="stat" text-anchor="middle" dominant-baseline="middle">#', tokenId.toString(), ' - ', _rarityLabel(s.rarity), '</text>',
-            '<text x="50%" y="132" class="label" text-anchor="middle" dominant-baseline="middle">LEVEL</text>',
-            '<text x="50%" y="156" class="stat" text-anchor="middle" dominant-baseline="middle">', uint256(s.level).toString(), '</text>',
-            '<g transform="translate(50,190)">',
-                '<text x="0" y="0" class="label">POWER BAR</text>',
-                '<rect x="0" y="10" width="280" height="14" rx="7" fill="#0f172a" stroke="#22d3ee" stroke-width="1"/>',
-                '<rect x="0" y="10" width="', _barWidth(s.power, 120), '" height="14" rx="7" fill="url(#bar)">',
-                    '<animate attributeName="width" values="0;', _barWidth(s.power, 120), '" dur="0.9s" fill="freeze" />',
-                '</rect>',
-            '</g>',
-            '<g transform="translate(50,230)">',
-                '<text x="0" y="0" class="label">AGILITY</text>',
-                '<rect x="0" y="10" width="200" height="10" rx="5" fill="#0f172a" stroke="#22d3ee" stroke-width="1"/>',
-                '<rect x="0" y="10" width="', _barWidth(s.agility, 100), '" height="10" rx="5" fill="url(#bar)"/>',
-            '</g>',
-            '<g transform="translate(50,260)">',
-                '<text x="0" y="0" class="label">VITALITY</text>',
-                '<rect x="0" y="10" width="200" height="10" rx="5" fill="#0f172a" stroke="#22d3ee" stroke-width="1"/>',
-                '<rect x="0" y="10" width="', _barWidth(s.vitality, 140), '" height="10" rx="5" fill="url(#bar)"/>',
-            '</g>',
-            '<g transform="translate(50,300)">',
-                '<text x="0" y="0" class="label">W / L</text>',
-                '<text x="0" y="20" class="stat">', uint256(s.victories).toString(), ' / ', uint256(s.defeats).toString(), '</text>',
-                '<text x="0" y="40" class="small">Cooldown: ', _cooldownText(s.lastAction), '</text>',
-            '</g>',
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">',
+            '<rect width="300" height="300" fill="#0f172a"/>',
+            '<rect x="10" y="10" width="280" height="280" fill="#1e293b" stroke="#22d3ee" stroke-width="2"/>',
+            '<text x="150" y="40" fill="#e0f2fe" font-size="18" text-anchor="middle">CHAIN WARRIOR</text>',
+            '<text x="150" y="65" fill="#cbd5e1" font-size="14" text-anchor="middle">#', tokenIdStr, ' - ', rarityStr, '</text>',
+            '<text x="150" y="95" fill="#94a3b8" font-size="12" text-anchor="middle">LEVEL</text>',
+            '<text x="150" y="115" fill="#e2e8f0" font-size="16" text-anchor="middle">', levelStr, '</text>',
+            '<text x="20" y="150" fill="#94a3b8" font-size="11">POWER</text>',
+            '<rect x="20" y="155" width="200" height="12" fill="#0f172a" stroke="#22d3ee" stroke-width="1"/>',
+            '<rect x="20" y="155" width="', powerStr, '" height="12" fill="#22d3ee"/>',
+            '<text x="20" y="180" fill="#94a3b8" font-size="11">AGILITY</text>',
+            '<rect x="20" y="185" width="200" height="10" fill="#0f172a" stroke="#22d3ee" stroke-width="1"/>',
+            '<rect x="20" y="185" width="', agilityStr, '" height="10" fill="#22d3ee"/>',
+            '<text x="20" y="210" fill="#94a3b8" font-size="11">VITALITY</text>',
+            '<rect x="20" y="215" width="200" height="10" fill="#0f172a" stroke="#22d3ee" stroke-width="1"/>',
+            '<rect x="20" y="215" width="', vitalityStr, '" height="10" fill="#22d3ee"/>',
+            '<text x="20" y="245" fill="#94a3b8" font-size="11">W / L</text>',
+            '<text x="20" y="265" fill="#e2e8f0" font-size="14">', victoriesStr, ' / ', defeatsStr, '</text>',
+            '<text x="20" y="285" fill="#94a3b8" font-size="10">', cooldownStr, '</text>',
             '</svg>'
         );
         return string(
@@ -217,7 +189,7 @@ contract ChainBattles is ERC721URIStorage {
 
     function _barWidth(uint256 stat, uint256 cap) private pure returns (string memory) {
         uint256 clamped = stat > cap ? cap : stat;
-        uint256 width = (clamped * 280) / cap; // map 0..cap to 0..280px
+        uint256 width = (clamped * 200) / cap; // map 0..cap to 0..200px
         return width.toString();
     }
 
@@ -259,10 +231,10 @@ contract ChainBattles is ERC721URIStorage {
     }
 
     function _cooldownText(uint48 lastAction) private view returns (string memory) {
-        if (block.timestamp <= lastAction + TRAIN_COOLDOWN) {
-            uint256 remaining = lastAction + TRAIN_COOLDOWN - block.timestamp;
-            return string(abi.encodePacked("Ready in ", remaining.toString(), "s"));
+        if (block.timestamp > lastAction + TRAIN_COOLDOWN) {
+            return "Ready";
         }
-        return "Ready";
+        uint256 remaining = lastAction + TRAIN_COOLDOWN - block.timestamp;
+        return string(abi.encodePacked(remaining.toString(), "s"));
     }
 }

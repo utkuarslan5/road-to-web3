@@ -1,23 +1,41 @@
-# Node modules
-week2/node_modules
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# Compilation output
-week2/dist
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
 
-week2/bundle
+# testing
+/coverage
 
-# Hardhat Build Artifacts
-week2/artifacts
+# next.js
+/.next/
+/out/
 
-# Hardhat compilation (v2) support directory
-week2/cache
+# production
+/build
 
-# Typechain output
-week2/types
+# misc
+.DS_Store
+*.pem
 
-# Hardhat coverage reports
-week2/coverage
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-week2/.env
+# local env files
+.env*.local
+.env.local
+.env
 
-.claude
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# Contract directories (keep these)
+!week2-buy-me-a-coffee/
+!week3-on-chain-nft/

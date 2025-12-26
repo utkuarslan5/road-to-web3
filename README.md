@@ -1,8 +1,8 @@
 # Road to Web3 - Trophy Collection 🏆
 
-A beautifully designed portfolio showcasing your Web3 development journey. Each week represents a milestone with deployed smart contracts and interactive dApps.
+A beautifully designed portfolio showcasing your Web3 development journey. Built with Next.js 14, Tailwind CSS, and shadcn/ui. Each week represents a new milestone in blockchain development.
 
-![Modern Designer Interface](https://img.shields.io/badge/Design-Modern-blueviolet) ![Web3](https://img.shields.io/badge/Web3-Enabled-success) ![Smart Contracts](https://img.shields.io/badge/Contracts-3-blue)
+![Modern Designer Interface](https://img.shields.io/badge/Design-Modern-blueviolet) ![Web3](https://img.shields.io/badge/Web3-Enabled-success) ![Next.js](https://img.shields.io/badge/Next.js-14-black) ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
 
 ## ✨ Features
 
@@ -22,8 +22,8 @@ A beautifully designed portfolio showcasing your Web3 development journey. Each 
 - On-chain memo board
 - Real-time transaction updates
 
-### Week 3: Chain Battles ⚔️ NEW!
-- **Contract**: Deploy with funds (see instructions below)
+### Week 3: Chain Battles ⚔️
+- **Contract**: [0xa19C...6d4](https://amoy.polygonscan.com/address/0xa19CE93621c003747b58ab98FaD7b419A6C596d4)
 - **Network**: Polygon Amoy Testnet
 - **Type**: Dynamic NFT with Gaming Mechanics
 - Mint warrior NFTs with randomized stats
@@ -33,145 +33,142 @@ A beautifully designed portfolio showcasing your Web3 development journey. Each 
 - 5 rarity tiers (Common → Mythic)
 - Real-time stat tracking
 
+### Week 4: NFT Gallery 🖼️ NEW!
+- **Network**: Ethereum Mainnet
+- **Type**: NFT Browser
+- Search NFTs by wallet address
+- Search NFTs by collection address
+- Powered by Alchemy NFT API
+- Beautiful grid display with metadata
+
 ## 🚀 Quick Start
 
-### 1. Clone and View Locally
+### Prerequisites
+- Node.js 20+
+- npm or yarn
+- MetaMask or compatible Web3 wallet
+
+### Installation
 
 ```bash
-# Open the project
+# Clone the repository
+git clone <your-repo-url>
 cd road-to-web3
 
-# Serve locally (use any static server)
-npx serve .
-# Or use Python
-python -m http.server 8000
-# Or use VS Code Live Server extension
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env.local
+# Edit .env.local and add your Alchemy API key for Week 4
 ```
 
-Visit `http://localhost:8000` to view your trophy collection!
-
-### 2. Deploy Week 3 Contract
-
-#### Prerequisites
-- Get Polygon Amoy testnet MATIC from [faucet](https://faucet.polygon.technology/)
-- Have your wallet private key ready
-
-#### Deployment Steps
+### Development
 
 ```bash
-cd week3
+# Run development server
+npm run dev
 
-# Install dependencies (if not already done)
-pnpm install
-
-# Create .env file with your credentials
-cat > .env << EOF
-TESTNET_RPC_URL=https://polygon-amoy.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
-PRIVATE_KEY=your_private_key_here
-EOF
-
-# Deploy the contract
-node scripts/deploy.js
+# Open http://localhost:3000
 ```
 
-#### Update the Website
+### Build
 
-After deployment, update [app.js:35](app.js#L35) with your deployed contract address:
+```bash
+# Build for production
+npm run build
 
-```javascript
-const week3Config = {
-  contractAddress: "YOUR_DEPLOYED_ADDRESS_HERE", // Replace this
-  chainId: 80002n,
-  // ... rest of config
-};
+# Start production server
+npm start
 ```
 
-## 🎨 Design System
+## 🌐 Deployment
 
-### Modern & Clean
-- **Dark theme** with gradient accents
-- **Glassmorphism** effects with backdrop blur
-- **Smooth animations** and transitions
-- **Responsive design** works on all devices
+### GitHub Pages
 
-### Color Palette
-- Primary Background: `#0a0e1a`
-- Accent Gradients: Purple → Blue → Pink
-- Success: `#10b981`
-- Chains: Sepolia (Blue), Polygon (Purple)
+This project is configured for GitHub Pages deployment using GitHub Actions.
 
-### Typography
-- Display: Space Grotesk
-- Body: Inter
-- Code: JetBrains Mono / Fira Code
+1. **Set up GitHub Pages:**
+   - Go to repository Settings → Pages
+   - Source: Deploy from a branch
+   - Branch: `gh-pages` (created by GitHub Actions)
 
-## 📱 Features Overview
+2. **Add Environment Variable:**
+   - Go to repository Settings → Secrets and variables → Actions
+   - Add `NEXT_PUBLIC_ALCHEMY_API_KEY` with your Alchemy API key
 
-### Trophy Collection Layout
-- **Hero Section**: Portfolio stats and introduction
-- **Week Navigation**: Sticky nav to jump between weeks
-- **Trophy Cards**: Each week in its own card with:
-  - Live contract data
-  - Interactive elements
-  - Network indicators
-  - Status updates
+3. **Deploy:**
+   - Push to `main` branch
+   - GitHub Actions will automatically build and deploy
 
-### Wallet Integration
-- MetaMask support
-- Automatic network switching
-- Transaction status tracking
-- Error handling with user-friendly messages
+The workflow (`.github/workflows/deploy.yml`) will:
+- Build the Next.js app
+- Export static files
+- Deploy to GitHub Pages
 
-### NFT Viewing
-- Real-time data from blockchain
-- IPFS image loading with fallbacks
-- Dynamic SVG display for Week 3
-- Stat visualization
+### Manual Deployment
+
+```bash
+# Build static export
+npm run build
+
+# The `out/` directory contains static files ready for deployment
+```
 
 ## 🛠️ Tech Stack
 
 ### Frontend
-- **Vanilla JavaScript** (no framework overhead)
-- **ethers.js v6** for Web3 interactions
-- **Modern CSS** with CSS Custom Properties
-- **Responsive Design** with CSS Grid & Flexbox
+- **Next.js 16** - React framework with App Router
+- **TypeScript** - Type safety
+- **Tailwind CSS** - Utility-first CSS
+- **shadcn/ui** - Beautiful component library
+- **ethers.js v6** - Web3 interactions
+- **Framer Motion** - Animations
 
 ### Smart Contracts
 - **Solidity ^0.8.0**
 - **OpenZeppelin** contracts
 - **Hardhat** for development
-- **Etherscan/Polygonscan** verification ready
+- Contract directories kept separate for independent deployment
 
 ### Networks
 - **Sepolia** (Ethereum Testnet) - Weeks 1 & 2
 - **Polygon Amoy** (L2 Testnet) - Week 3
+- **Ethereum Mainnet** - Week 4
 
 ## 📂 Project Structure
 
 ```
 road-to-web3/
-├── index.html          # Main trophy collection page
-├── app.js              # Web3 integration & logic
-├── styles.css          # Modern designer styles
-├── README.md           # This file
-├── week2/              # Buy Me a Coffee contract
-│   ├── contracts/
-│   ├── scripts/
-│   └── hardhat.config.ts
-└── week3/              # Chain Battles contract
-    ├── contracts/
-    │   └── chain_battles.sol
-    ├── scripts/
-    │   └── deploy.js
-    └── hardhat.config.ts
+├── app/                    # Next.js App Router
+│   ├── layout.tsx         # Root layout
+│   ├── page.tsx           # Dashboard/home
+│   ├── week1/             # Week 1 page
+│   ├── week2/             # Week 2 page
+│   ├── week3/             # Week 3 page
+│   └── week4/             # Week 4 page
+├── components/             # React components
+│   ├── ui/                # shadcn/ui components
+│   ├── layout/            # Layout components
+│   └── week*/             # Week-specific components
+├── lib/                   # Utilities & services
+│   ├── contracts.ts       # Contract configs
+│   ├── alchemy.ts         # Alchemy API client
+│   ├── ethers.ts          # Ethers helpers
+│   └── ipfs.ts            # IPFS helpers
+├── hooks/                 # Custom React hooks
+├── config/                # Configuration
+├── week2-buy-me-a-coffee/ # Contract (separate)
+├── week3-on-chain-nft/   # Contract (separate)
+└── public/                # Static assets
 ```
 
 ## 🎮 Using the dApp
 
 ### Week 1: View Your Trophy
-1. Page loads automatically
-2. NFT fetches from Sepolia
-3. Displays metadata and image
+1. Navigate to Week 1 page
+2. NFT automatically loads from Sepolia
+3. View metadata and image
 
 ### Week 2: Send a Coffee
 1. Click "Connect Wallet"
@@ -189,68 +186,38 @@ road-to-web3/
 5. View stats as they increase!
 6. Enter any token ID to view other warriors
 
-## 🔧 Customization
+### Week 4: NFT Gallery
+1. Navigate to Week 4 page
+2. Choose "Wallet Address" or "Collection Address"
+3. Enter an Ethereum address
+4. Click "Search NFTs"
+5. Browse the NFT grid!
 
-### Update Contract Addresses
-Edit [app.js](app.js) configuration objects:
-- `week1Config` (lines 1-14)
-- `week2Config` (lines 16-25)
-- `week3Config` (lines 32-42)
+## 🔧 Configuration
 
-### Customize Styling
-Edit [styles.css](styles.css) CSS custom properties:
-- Colors (lines 6-31)
-- Spacing (lines 53-59)
-- Typography (lines 68-71)
+### Contract Addresses
+Edit `lib/contracts.ts` to update contract addresses and configurations.
 
-### Add More Weeks
-1. Create new contract directory (`week4/`)
-2. Add trophy section to `index.html`
-3. Add integration to `app.js`
-4. Style in `styles.css`
+### Alchemy API Key
+1. Get your API key from [alchemy.com](https://www.alchemy.com/)
+2. Add to `.env.local` as `NEXT_PUBLIC_ALCHEMY_API_KEY`
+3. For GitHub Pages, add as GitHub Secret
 
-## 🌐 Deployment
-
-### GitHub Pages
-```bash
-# Enable GitHub Pages in repo settings
-# Point to main branch, root directory
-# Your site will be live at: https://YOUR_USERNAME.github.io/road-to-web3/
-```
-
-### Vercel
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Deploy
-vercel --prod
-```
-
-### Netlify
-```bash
-# Drag and drop the folder on netlify.com
-# Or use CLI
-netlify deploy --prod
-```
+### Styling
+- Tailwind config: `tailwind.config.ts`
+- Global styles: `app/globals.css`
+- Component styles: Use Tailwind classes
 
 ## 📝 Notes
 
-### Week 3 Contract Deployment
-- **IMPORTANT**: You need Polygon Amoy testnet MATIC to deploy
-- Get free testnet MATIC from the [Polygon Faucet](https://faucet.polygon.technology/)
-- The contract address is currently a placeholder: `0x0000000000000000000000000000000000000000`
-- After deployment, update `week3Config.contractAddress` in [app.js:35](app.js#L35)
-
-### RPC Endpoints
-The project uses Alchemy RPC endpoints. You can:
-- Use the existing endpoints (rate-limited)
-- Get your own free Alchemy API key at [alchemy.com](https://www.alchemy.com/)
-- Replace RPC URLs in the config objects
+### Contract Deployment
+- Week 2 and Week 3 contracts are in separate directories
+- Deploy contracts independently using Hardhat
+- Update contract addresses in `lib/contracts.ts` after deployment
 
 ### Browser Compatibility
 - Requires MetaMask or compatible Web3 wallet
-- Modern browser with ES6+ support
+- Modern browser with ES2020+ support
 - JavaScript must be enabled
 
 ## 🤝 Contributing
@@ -272,9 +239,8 @@ MIT License - feel free to use this for your own Web3 portfolio!
 - **OpenZeppelin** for secure contract libraries
 - **Hardhat** for development framework
 - **ethers.js** for Web3 interactions
+- **shadcn/ui** for beautiful components
 
 ---
 
 Built with ❤️ for Road to Web3 · 2025
-
-**Questions?** Open an issue or reach out on Twitter!
