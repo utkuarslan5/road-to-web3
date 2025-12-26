@@ -6,27 +6,56 @@ import { Navigation } from "@/components/layout/Navigation"
 import { Footer } from "@/components/layout/Footer"
 import { SearchForm } from "@/components/week4/SearchForm"
 import { NFTGrid } from "@/components/week4/NFTGrid"
+import { PaginationControls } from "@/components/week4/PaginationControls"
 import { AlchemyService, type NFT } from "@/lib/alchemy"
 import { extractErrorMessage } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 
 const DEFAULT_COLLECTION = "0xbd3531da5cf5857e7cfaa92426877b022e612cf8"
+const PAGE_SIZE = 20
 
 export default function Week4Page() {
   const [nfts, setNfts] = useState<NFT[]>([])
   const [loading, setLoading] = useState(false)
   const [alchemy] = useState(() => new AlchemyService())
   const { toast } = useToast()
+  
+  // Pagination state
+  const [nextToken, setNextToken] = useState<string | undefined>(undefined) // For collection pagination
+  const [pageKey, setPageKey] = useState<string | undefined>(undefined) // For wallet pagination
+  const [startTokenHistory, setStartTokenHistory] = useState<string[]>([])
+  const [pageKeyHistory, setPageKeyHistory] = useState<string[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [isPaginationEnabled, setIsPaginationEnabled] = useState(false)
+  const [currentCollectionAddress, setCurrentCollectionAddress] = useState<string | undefined>(undefined)
+  const [currentWalletAddress, setCurrentWalletAddress] = useState<string | undefined>(undefined)
+  const [paginationMode, setPaginationMode] = useState<"collection" | "wallet" | null>(null)
 
   // Load default collection on mount
   useEffect(() => {
     const loadDefaultCollection = async () => {
       setLoading(true)
       setNfts([])
+      
+      // Reset pagination state
+      setNextToken(undefined)
+      setPageKey(undefined)
+      setStartTokenHistory([])
+      setPageKeyHistory([])
+      setCurrentPage(1)
+      setIsPaginationEnabled(true)
+      setCurrentCollectionAddress(DEFAULT_COLLECTION)
+      setCurrentWalletAddress(undefined)
+      setPaginationMode("collection")
 
       try {
-        const result = await alchemy.getNFTsByCollection(DEFAULT_COLLECTION)
+        const result = await alchemy.getNFTsByCollection(DEFAULT_COLLECTION, PAGE_SIZE)
+        console.log("Default collection result:", { nextToken: result.nextToken, nftCount: result.nfts?.length })
         setNfts(result.nfts || [])
+        // Normalize nextToken: convert empty string to undefined
+        const normalizedToken = result.nextToken && result.nextToken.trim() !== "" ? result.nextToken : undefined
+        console.log("Normalized nextToken:", normalizedToken)
+        setNextToken(normalizedToken)
         if (result.nfts.length === 0) {
           toast({
             title: "No NFTs found",
@@ -51,37 +80,65 @@ export default function Week4Page() {
   const handleSearch = async (walletAddress: string, collectionAddress: string) => {
     setLoading(true)
     setNfts([])
+    
+    // Reset pagination state for new search
+    setNextToken(undefined)
+    setPageKey(undefined)
+    setStartTokenHistory([])
+    setPageKeyHistory([])
+    setCurrentPage(1)
+    setCurrentCollectionAddress(undefined)
+    setCurrentWalletAddress(undefined)
+    setPaginationMode(null)
 
     try {
       let allNfts: NFT[] = []
 
       // If both wallet and collection are specified, fetch from wallet and filter by collection
       if (walletAddress && collectionAddress) {
-        const result = await alchemy.getNFTsByWallet(walletAddress)
+        // For wallet+collection combo, enable pagination on wallet side
+        setIsPaginationEnabled(true)
+        setCurrentWalletAddress(walletAddress)
+        setCurrentCollectionAddress(collectionAddress) // Store for filtering
+        setPaginationMode("wallet")
+        const result = await alchemy.getNFTsByWallet(walletAddress, PAGE_SIZE)
         allNfts = (result.ownedNfts || []).filter(
           (nft) => nft.contract.address.toLowerCase() === collectionAddress.toLowerCase()
         )
+        // Normalize pageKey: convert empty string to undefined
+        const normalizedPageKey = result.pageKey && result.pageKey.trim() !== "" ? result.pageKey : undefined
+        setPageKey(normalizedPageKey)
       }
       // If only wallet is specified, fetch from wallet
       else if (walletAddress) {
-        // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/a8e5cd40-aac2-4a1d-b476-7bb73bdb3272',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'page.tsx:66',message:'Fetching NFTs by wallet',data:{walletAddress},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
-        const result = await alchemy.getNFTsByWallet(walletAddress)
-        // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/a8e5cd40-aac2-4a1d-b476-7bb73bdb3272',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'page.tsx:68',message:'Wallet API result received',data:{ownedNftsCount:result.ownedNfts?.length||0,hasOwnedNfts:!!result.ownedNfts,firstNftSample:result.ownedNfts?.[0]?{name:result.ownedNfts[0].name,title:result.ownedNfts[0].title,hasRaw:!!result.ownedNfts[0].raw}:null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
+        setIsPaginationEnabled(true)
+        setCurrentWalletAddress(walletAddress)
+        setPaginationMode("wallet")
+        const result = await alchemy.getNFTsByWallet(walletAddress, PAGE_SIZE)
         allNfts = result.ownedNfts || []
+        // Normalize pageKey: convert empty string to undefined
+        const normalizedPageKey = result.pageKey && result.pageKey.trim() !== "" ? result.pageKey : undefined
+        setPageKey(normalizedPageKey)
       }
       // If only collection is specified, fetch from collection
       else if (collectionAddress) {
-        const result = await alchemy.getNFTsByCollection(collectionAddress)
+        setIsPaginationEnabled(true)
+        setCurrentCollectionAddress(collectionAddress)
+        setPaginationMode("collection")
+        const result = await alchemy.getNFTsByCollection(collectionAddress, PAGE_SIZE)
         allNfts = result.nfts || []
+        // Normalize nextToken: convert empty string to undefined
+        setNextToken(result.nextToken && result.nextToken.trim() !== "" ? result.nextToken : undefined)
       }
       // If neither is specified, use default collection
       else {
-        const result = await alchemy.getNFTsByCollection(DEFAULT_COLLECTION)
+        setIsPaginationEnabled(true)
+        setCurrentCollectionAddress(DEFAULT_COLLECTION)
+        setPaginationMode("collection")
+        const result = await alchemy.getNFTsByCollection(DEFAULT_COLLECTION, PAGE_SIZE)
         allNfts = result.nfts || []
+        // Normalize nextToken: convert empty string to undefined
+        setNextToken(result.nextToken && result.nextToken.trim() !== "" ? result.nextToken : undefined)
       }
 
       setNfts(allNfts)
@@ -99,6 +156,136 @@ export default function Week4Page() {
       }
     } catch (error: any) {
       console.error("Error fetching NFTs:", error)
+      toast({
+        title: "Error",
+        description: extractErrorMessage(error),
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleNextPage = async () => {
+    if (!isPaginationEnabled) return
+
+    setLoading(true)
+    
+    try {
+      if (paginationMode === "wallet" && currentWalletAddress) {
+        // Wallet pagination using pageKey
+        if (!pageKey) return
+        
+        const pageKeyToUse = pageKey
+        
+        const result = await alchemy.getNFTsByWallet(
+          currentWalletAddress,
+          PAGE_SIZE,
+          pageKeyToUse
+        )
+        
+        let allNfts = result.ownedNfts || []
+        
+        // If we have a collection filter, apply it
+        if (currentCollectionAddress) {
+          allNfts = allNfts.filter(
+            (nft) => nft.contract.address.toLowerCase() === currentCollectionAddress.toLowerCase()
+          )
+        }
+        
+        console.log("Next page result (wallet):", { pageKey: result.pageKey, nftCount: allNfts.length, usedPageKey: pageKeyToUse })
+        setNfts(allNfts)
+        // Normalize pageKey: convert empty string to undefined
+        const normalizedPageKey = result.pageKey && result.pageKey.trim() !== "" ? result.pageKey : undefined
+        console.log("Normalized pageKey after next page:", normalizedPageKey)
+        setPageKey(normalizedPageKey)
+        // Push the pageKey we just used to history for backward navigation
+        setPageKeyHistory(prev => [...prev, pageKeyToUse])
+        setCurrentPage(prev => prev + 1)
+      } else if (paginationMode === "collection" && currentCollectionAddress) {
+        // Collection pagination using nextToken
+        if (!nextToken) return
+        
+        const tokenToUse = nextToken
+        
+        const result = await alchemy.getNFTsByCollection(
+          currentCollectionAddress,
+          PAGE_SIZE,
+          tokenToUse
+        )
+        
+        console.log("Next page result (collection):", { nextToken: result.nextToken, nftCount: result.nfts?.length, usedToken: tokenToUse })
+        setNfts(result.nfts || [])
+        // Normalize nextToken: convert empty string to undefined
+        const normalizedToken = result.nextToken && result.nextToken.trim() !== "" ? result.nextToken : undefined
+        console.log("Normalized nextToken after next page:", normalizedToken)
+        setNextToken(normalizedToken)
+        // Push the token we just used to history for backward navigation
+        setStartTokenHistory(prev => [...prev, tokenToUse])
+        setCurrentPage(prev => prev + 1)
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: extractErrorMessage(error),
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handlePreviousPage = async () => {
+    if (currentPage <= 1 || !isPaginationEnabled) return
+
+    setLoading(true)
+    
+    try {
+      if (paginationMode === "wallet" && currentWalletAddress) {
+        // Pop the last pageKey from history
+        const newHistory = pageKeyHistory.slice(0, -1)
+        // The previous page's pageKey is the last pageKey in the remaining history, or undefined if going back to page 1
+        const previousPageKey = newHistory.length > 0 ? newHistory[newHistory.length - 1] : undefined
+        
+        const result = await alchemy.getNFTsByWallet(
+          currentWalletAddress,
+          PAGE_SIZE,
+          previousPageKey
+        )
+        
+        let allNfts = result.ownedNfts || []
+        
+        // If we have a collection filter, apply it
+        if (currentCollectionAddress) {
+          allNfts = allNfts.filter(
+            (nft) => nft.contract.address.toLowerCase() === currentCollectionAddress.toLowerCase()
+          )
+        }
+        
+        setNfts(allNfts)
+        // Normalize pageKey: convert empty string to undefined
+        setPageKey(result.pageKey && result.pageKey.trim() !== "" ? result.pageKey : undefined)
+        setPageKeyHistory(newHistory)
+        setCurrentPage(prev => prev - 1)
+      } else if (paginationMode === "collection" && currentCollectionAddress) {
+        // Pop the last token from history
+        const newHistory = startTokenHistory.slice(0, -1)
+        // The previous page's startToken is the last token in the remaining history, or undefined if going back to page 1
+        const previousStartToken = newHistory.length > 0 ? newHistory[newHistory.length - 1] : undefined
+        
+        const result = await alchemy.getNFTsByCollection(
+          currentCollectionAddress,
+          PAGE_SIZE,
+          previousStartToken
+        )
+        
+        setNfts(result.nfts || [])
+        // Normalize nextToken: convert empty string to undefined
+        setNextToken(result.nextToken && result.nextToken.trim() !== "" ? result.nextToken : undefined)
+        setStartTokenHistory(newHistory)
+        setCurrentPage(prev => prev - 1)
+      }
+    } catch (error: any) {
       toast({
         title: "Error",
         description: extractErrorMessage(error),
@@ -129,9 +316,19 @@ export default function Week4Page() {
         </div>
 
         <NFTGrid nfts={nfts} alchemy={alchemy} loading={loading} />
+        
+        {isPaginationEnabled && (
+          <PaginationControls
+            currentPage={currentPage}
+            hasNext={paginationMode === "wallet" ? !!pageKey : !!nextToken}
+            hasPrevious={currentPage > 1}
+            onNext={handleNextPage}
+            onPrevious={handlePreviousPage}
+            loading={loading}
+          />
+        )}
       </main>
       <Footer />
     </div>
   )
 }
-

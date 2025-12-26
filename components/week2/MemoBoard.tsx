@@ -40,7 +40,20 @@ export function MemoBoard() {
 
       const provider = getProvider() || new ethers.JsonRpcProvider(WEEK2_CONFIG.rpcUrl)
       const contract = getContract(WEEK2_CONFIG.contractAddress, COFFEE_ABI, provider)
-      const memosData = await contract.memos()
+      
+      let memosData: Memo[] = []
+      try {
+        memosData = await contract.memos() as Memo[]
+      } catch (callErr: any) {
+        // If error is "could not decode result data" with value="0x", treat as empty array
+        // This happens when the contract returns empty data (no memos yet)
+        if (callErr.code === 'BAD_DATA' && (callErr.value === '0x' || callErr.info?.method === 'memos')) {
+          memosData = []
+        } else {
+          // Re-throw other errors
+          throw callErr
+        }
+      }
 
       setMemos(memosData)
     } catch (err: any) {

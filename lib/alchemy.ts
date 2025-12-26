@@ -97,10 +97,6 @@ export class AlchemyService {
     pageSize: number = 100,
     pageKey?: string
   ): Promise<AlchemyNFTResponse> {
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/a8e5cd40-aac2-4a1d-b476-7bb73bdb3272',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'alchemy.ts:95',message:'getNFTsByWallet entry',data:{address,pageSize,pageKey},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    
     // Normalize address (ensure it starts with 0x and is lowercase)
     const normalizedAddress = address.trim().toLowerCase()
     const cleanAddress = normalizedAddress.startsWith('0x') 
@@ -126,10 +122,6 @@ export class AlchemyService {
     // Use getNFTsForOwner endpoint (Alchemy API v3) instead of deprecated getNFTs
     const url = `${this.baseUrl}/getNFTsForOwner?${params}`
     
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/a8e5cd40-aac2-4a1d-b476-7bb73bdb3272',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'alchemy.ts:122',message:'API request URL',data:{url:url.replace(this.apiKey,'API_KEY_HIDDEN'),cleanAddress,params:params.toString()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    
     try {
       const response = await fetch(url, {
         cache: "no-store",
@@ -137,10 +129,6 @@ export class AlchemyService {
           "Cache-Control": "no-cache",
         },
       })
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/a8e5cd40-aac2-4a1d-b476-7bb73bdb3272',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'alchemy.ts:131',message:'API response status',data:{status:response.status,statusText:response.statusText,ok:response.ok},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
       
       if (!response.ok) {
         // Try to get error details from response
@@ -151,10 +139,6 @@ export class AlchemyService {
         try {
           const errorText = await response.text()
           console.error("Alchemy API error response body:", errorText)
-          
-          // #region agent log
-          fetch('http://127.0.0.1:7244/ingest/a8e5cd40-aac2-4a1d-b476-7bb73bdb3272',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'alchemy.ts:142',message:'API error response',data:{errorText:errorText.substring(0,500)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-          // #endregion
           
           let errorData
           try {
@@ -181,15 +165,13 @@ export class AlchemyService {
 
       const data = await response.json()
       
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/a8e5cd40-aac2-4a1d-b476-7bb73bdb3272',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'alchemy.ts:166',message:'API response data structure',data:{hasOwnedNfts:!!data.ownedNfts,ownedNftsLength:data.ownedNfts?.length||0,keys:Object.keys(data),firstNftKeys:data.ownedNfts?.[0]?Object.keys(data.ownedNfts[0]):[],firstNftName:data.ownedNfts?.[0]?.name,firstNftTitle:data.ownedNfts?.[0]?.title,firstNftRawMetadata:!!data.ownedNfts?.[0]?.raw?.metadata,firstNftMetadata:!!data.ownedNfts?.[0]?.metadata},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
+      // Alchemy API might return pageKey - normalize it (convert empty string to undefined)
+      if (data && data.pageKey && data.pageKey.trim() === "") {
+        data.pageKey = undefined
+      }
       
       return data
     } catch (error: any) {
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/a8e5cd40-aac2-4a1d-b476-7bb73bdb3272',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'alchemy.ts:169',message:'getNFTsByWallet error',data:{errorMessage:error?.message,errorType:error?.constructor?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
       
       // If it's already an Error we threw, re-throw it
       if (error instanceof Error) {
@@ -208,7 +190,7 @@ export class AlchemyService {
     const params = new URLSearchParams({
       contractAddress,
       withMetadata: "true",
-      pageSize: pageSize.toString(),
+      limit: pageSize.toString(),
     })
     
     if (startToken) {
@@ -224,10 +206,22 @@ export class AlchemyService {
     })
     
     if (!response.ok) {
-      throw new Error(`Alchemy API error: ${response.statusText}`)
+      const errorText = await response.text()
+      throw new Error(`Alchemy API error: ${response.statusText} - ${errorText}`)
     }
 
-    return await response.json()
+    const data = await response.json()
+    
+    // Alchemy API might return nextToken or pageKey - normalize to nextToken
+    // Also handle cases where the field might be missing or empty
+    if (data && !data.nextToken) {
+      // Check for alternative field names
+      if (data.pageKey) {
+        data.nextToken = data.pageKey
+      }
+    }
+    
+    return data
   }
 
   getImageUrl(nft: NFT): string {
@@ -343,9 +337,6 @@ export class AlchemyService {
   }
 
   getNFTName(nft: NFT): string {
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/a8e5cd40-aac2-4a1d-b476-7bb73bdb3272',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'alchemy.ts:319',message:'getNFTName entry',data:{hasName:!!nft.name,hasTitle:!!nft.title,hasRawMetadataName:!!nft.raw?.metadata?.name,hasMetadataName:!!nft.metadata?.name,name:nft.name,title:nft.title,rawMetadataName:nft.raw?.metadata?.name,metadataName:nft.metadata?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
     
     const result = (
       nft.name ||
@@ -355,17 +346,10 @@ export class AlchemyService {
       `${nft.contract.name || "NFT"} #${nft.tokenId}`
     )
     
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/a8e5cd40-aac2-4a1d-b476-7bb73bdb3272',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'alchemy.ts:327',message:'getNFTName result',data:{result},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
-    
     return result
   }
 
   getNFTDescription(nft: NFT): string {
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/a8e5cd40-aac2-4a1d-b476-7bb73bdb3272',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'alchemy.ts:329',message:'getNFTDescription entry',data:{hasDescription:!!nft.description,hasRawMetadataDescription:!!nft.raw?.metadata?.description,hasMetadataDescription:!!nft.metadata?.description},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
     
     const result = (
       nft.description ||
@@ -374,11 +358,6 @@ export class AlchemyService {
       ""
     )
     
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/a8e5cd40-aac2-4a1d-b476-7bb73bdb3272',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'alchemy.ts:337',message:'getNFTDescription result',data:{result,resultLength:result?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
-    
     return result
   }
 }
-

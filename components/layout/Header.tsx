@@ -19,7 +19,7 @@ export function Header() {
         </p>
         <div className="flex flex-wrap justify-center gap-6">
           <Card className="glass px-8 py-6 min-w-[200px]">
-            <div className="text-4xl font-bold mb-2">3</div>
+            <div className="text-4xl font-bold mb-2">4</div>
             <div className="text-sm text-muted-foreground">Weeks Completed</div>
           </Card>
           <Card className="glass px-8 py-6 min-w-[200px]">

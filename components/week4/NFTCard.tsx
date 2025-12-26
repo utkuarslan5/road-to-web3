@@ -13,19 +13,10 @@ interface NFTCardProps {
 }
 
 export function NFTCard({ nft, alchemy }: NFTCardProps) {
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/a8e5cd40-aac2-4a1d-b476-7bb73bdb3272',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NFTCard.tsx:15',message:'NFTCard render entry',data:{contractAddress:nft.contract.address,tokenId:nft.tokenId,hasName:!!nft.name,hasTitle:!!nft.title,hasRawMetadata:!!nft.raw?.metadata,hasMetadata:!!nft.metadata},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-  // #endregion
-  
   const imageUrl = alchemy.getImageUrl(nft)
   const name = alchemy.getNFTName(nft)
   const description = alchemy.getNFTDescription(nft)
   const collectionName = nft.contract.name || "Unknown Collection"
-  
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/a8e5cd40-aac2-4a1d-b476-7bb73bdb3272',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NFTCard.tsx:21',message:'NFTCard extracted values',data:{imageUrl,name,description,collectionName},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-  // #endregion
-
 
   return (
     <Card className="glass overflow-hidden hover:border-accent-purple/50 transition-colors">
@@ -124,4 +115,3 @@ export function NFTCardSkeleton() {
     </Card>
   )
 }
-

@@ -36,24 +36,7 @@ export function WarriorDisplay({ tokenId }: { tokenId: number | null }) {
         setError(null)
 
         const provider = getProvider() || new ethers.JsonRpcProvider(WEEK3_CONFIG.rpcUrl)
-        
-        // Try latest contract first, then fallback to old contract
-        let contract = getContract(WEEK3_CONFIG.contractAddress, CHAIN_BATTLES_ABI, provider)
-        let contractAddress = WEEK3_CONFIG.contractAddress
-        
-        // Try to fetch from latest contract first
-        try {
-          await contract.ownerOf(tokenId)
-        } catch (ownerErr: any) {
-          // If latest contract fails, try old contract
-          try {
-            contract = getContract(WEEK3_CONFIG.oldContractAddress, CHAIN_BATTLES_ABI, provider)
-            contractAddress = WEEK3_CONFIG.oldContractAddress
-            await contract.ownerOf(tokenId)
-          } catch (oldOwnerErr: any) {
-            throw new Error(`Token ID ${tokenId} does not exist in current or old contract. Mint a warrior first!`)
-          }
-        }
+        const contract = getContract(WEEK3_CONFIG.contractAddress, CHAIN_BATTLES_ABI, provider)
         
         const tokenURI = await contract.tokenURI(tokenId)
 
@@ -92,9 +75,7 @@ export function WarriorDisplay({ tokenId }: { tokenId: number | null }) {
         }
       } catch (err: any) {
         // Provide user-friendly error messages
-        if (err.message?.includes("does not exist")) {
-          setError(err.message)
-        } else if (err.message?.includes("execution reverted") || err.message?.includes("require")) {
+        if (err.message?.includes("execution reverted") || err.message?.includes("require")) {
           setError(`Token ID ${tokenId} does not exist. Mint a warrior first!`)
         } else {
           setError(err.message || "Failed to load warrior")

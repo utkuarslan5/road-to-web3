@@ -23,8 +23,7 @@ export const WEEK2_CONFIG = {
 } as const
 
 export const WEEK3_CONFIG = {
-  contractAddress: "0x7930FD2407eAc725319F85b693867f0aa81e6b7E", // Latest contract
-  oldContractAddress: "0xa19CE93621c003747b58ab98FaD7b419A6C596d4", // Old contract (fallback)
+  contractAddress: "0x7930FD2407eAc725319F85b693867f0aa81e6b7E",
   deployerAddress: "0x35313FB0881423D798BcFA3b68741c512Df31559", // Deployer address to show NFTs when wallet not connected
   chainId: 80002n,
   chainIdHex: "0x13882",
@@ -36,8 +35,8 @@ export const WEEK3_CONFIG = {
 } as const
 
 export const COFFEE_ABI = [
-  "function buyCoffee(string name,string message) public payable",
-  "function memos() view returns (tuple(address supporter,uint256 timestamp,string name,string message)[])",
+  "function buyCoffee(string name, string message) public payable",
+  "function memos() external view returns (tuple(address supporter, uint256 timestamp, string name, string message)[])",
 ] as const
 
 export const CHAIN_BATTLES_ABI = [
