@@ -19,7 +19,7 @@ interface WarriorStats {
   rarity: number
 }
 
-export function WarriorDisplay({ tokenId }: { tokenId: number | null }) {
+export function WarriorDisplay({ tokenId, refreshKey }: { tokenId: number | null; refreshKey?: number }) {
   const [svgData, setSvgData] = useState<string>("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -87,7 +87,7 @@ export function WarriorDisplay({ tokenId }: { tokenId: number | null }) {
     }
 
     fetchWarrior()
-  }, [tokenId])
+  }, [tokenId, refreshKey])
 
   if (loading) {
     return (

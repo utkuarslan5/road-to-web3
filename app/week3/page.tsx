@@ -20,6 +20,7 @@ import { useWarriorNFTs } from "@/hooks/useWarriorNFTs"
 export default function Week3Page() {
   const wallet = useWallet(POLYGON_AMOY)
   const [currentTokenId, setCurrentTokenId] = useState<number | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
   
   // Determine which address to use: connected wallet or deployer
   const ownerAddress = wallet.isConnected && wallet.address 
@@ -35,13 +36,12 @@ export default function Week3Page() {
   const handleMintSuccess = useCallback(async () => {
     // Refresh NFT list
     await refreshNFTs()
-    // Wait a bit for the list to update, then select the highest token ID (newest)
-    setTimeout(() => {
-      // Get updated token IDs - we'll need to refetch
-      refreshNFTs().then(() => {
-        // After refresh, the tokenIds will update via the hook
-        // We'll select the max token ID in a useEffect
-      })
+    // Increment refresh key to force all components to refresh
+    setRefreshKey(prev => prev + 1)
+    // Wait a bit for the blockchain to update, then refresh again and select newest
+    setTimeout(async () => {
+      await refreshNFTs()
+      setRefreshKey(prev => prev + 1)
     }, 2000)
   }, [refreshNFTs])
 
@@ -56,10 +56,12 @@ export default function Week3Page() {
     }
   }, [tokenIds, wallet.isConnected, currentTokenId])
 
-  const handleTrainSuccess = useCallback(() => {
-    // Stats will auto-refresh via useEffect in WarriorStats
-    // But we can trigger a manual refresh if needed
-  }, [])
+  const handleTrainSuccess = useCallback(async () => {
+    // Refresh NFT list to update warrior cards
+    await refreshNFTs()
+    // Increment refresh key to force WarriorDisplay and WarriorStats to refresh
+    setRefreshKey(prev => prev + 1)
+  }, [refreshNFTs])
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -92,15 +94,16 @@ export default function Week3Page() {
             selectedTokenId={currentTokenId}
             onSelectToken={handleTokenSelect}
             title={wallet.isConnected ? "Your Warriors" : "Deployer's Warriors"}
+            refreshKey={refreshKey}
           />
         </div>
 
         {/* Selected Warrior View */}
         {currentTokenId && (
           <div className="grid lg:grid-cols-2 gap-6 mb-8">
-            <WarriorDisplay tokenId={currentTokenId} />
+            <WarriorDisplay tokenId={currentTokenId} refreshKey={refreshKey} />
             <div className="space-y-6">
-              <WarriorStats tokenId={currentTokenId} />
+              <WarriorStats tokenId={currentTokenId} refreshKey={refreshKey} />
               <WarriorActions
                 currentTokenId={currentTokenId}
                 onTokenChange={setCurrentTokenId}

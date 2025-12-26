@@ -18,7 +18,7 @@ interface WarriorStats {
   rarity: number
 }
 
-export function WarriorStats({ tokenId }: { tokenId: number | null }) {
+export function WarriorStats({ tokenId, refreshKey }: { tokenId: number | null; refreshKey?: number }) {
   const [stats, setStats] = useState<WarriorStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -63,7 +63,7 @@ export function WarriorStats({ tokenId }: { tokenId: number | null }) {
     }
 
     fetchStats()
-  }, [tokenId])
+  }, [tokenId, refreshKey])
 
   if (loading) {
     return (

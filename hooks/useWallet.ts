@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { ethers } from "ethers"
-import { getProvider, ensureCorrectNetwork } from "@/lib/ethers"
+import { getProvider, ensureCorrectNetwork, resetProvider } from "@/lib/ethers"
 import type { ChainConfig } from "@/config/chains"
 
 export interface WalletState {
@@ -12,6 +12,15 @@ export interface WalletState {
   isConnected: boolean
   isConnecting: boolean
   error: string | null
+}
+
+// Helper to check if error is a message port error
+function isMessagePortError(error: any): boolean {
+  return (
+    error?.message?.includes("message port closed") ||
+    error?.message?.includes("The message port closed") ||
+    error?.code === "UNPREDICTABLE_GAS_LIMIT"
+  )
 }
 
 export function useWallet(chainConfig?: ChainConfig) {
@@ -42,8 +51,23 @@ export function useWallet(chainConfig?: ChainConfig) {
         throw new Error("Provider not available")
       }
 
-      // Request account access
-      await provider.send("eth_requestAccounts", [])
+      // Request account access with error handling
+      try {
+        await provider.send("eth_requestAccounts", [])
+      } catch (error: any) {
+        if (isMessagePortError(error)) {
+          // Reset provider and retry once
+          resetProvider()
+          const retryProvider = getProvider()
+          if (retryProvider) {
+            await retryProvider.send("eth_requestAccounts", [])
+          } else {
+            throw new Error("MetaMask connection interrupted. Please try again.")
+          }
+        } else {
+          throw error
+        }
+      }
 
       // Switch network if chain config provided
       if (chainConfig) {
@@ -122,26 +146,45 @@ export function useWallet(chainConfig?: ChainConfig) {
             error: null,
           })
         }
-      } catch (error) {
-        // Silently fail on initial check
+      } catch (error: any) {
+        // Silently handle message port errors on initial check
+        if (!isMessagePortError(error)) {
+          // Only log non-port errors for debugging
+          console.debug("Wallet connection check failed:", error)
+        }
       }
     }
 
-    checkConnection()
+    // Add a small delay to avoid race conditions on page load
+    const timeoutId = setTimeout(() => {
+      checkConnection()
+    }, 100)
 
     // Listen for account changes
     const handleAccountsChanged = (accounts: string[]) => {
       if (accounts.length === 0) {
         disconnect()
       } else {
+        // Reset provider on account change to ensure fresh connection
+        resetProvider()
         checkConnection()
       }
     }
 
-    ;(window as any).ethereum?.on("accountsChanged", handleAccountsChanged)
+    // Listen for chain changes
+    const handleChainChanged = () => {
+      resetProvider()
+      checkConnection()
+    }
+
+    const ethereum = (window as any).ethereum
+    ethereum?.on("accountsChanged", handleAccountsChanged)
+    ethereum?.on("chainChanged", handleChainChanged)
 
     return () => {
-      ;(window as any).ethereum?.removeListener("accountsChanged", handleAccountsChanged)
+      clearTimeout(timeoutId)
+      ethereum?.removeListener("accountsChanged", handleAccountsChanged)
+      ethereum?.removeListener("chainChanged", handleChainChanged)
     }
   }, [chainConfig, disconnect])
 

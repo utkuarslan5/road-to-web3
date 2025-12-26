@@ -13,9 +13,10 @@ interface WarriorCardProps {
   tokenId: number
   isSelected: boolean
   onClick: () => void
+  refreshKey?: number
 }
 
-function WarriorCard({ tokenId, isSelected, onClick }: WarriorCardProps) {
+function WarriorCard({ tokenId, isSelected, onClick, refreshKey }: WarriorCardProps) {
   const [svgData, setSvgData] = useState<string>("")
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -58,7 +59,7 @@ function WarriorCard({ tokenId, isSelected, onClick }: WarriorCardProps) {
     }
 
     loadWarrior()
-  }, [tokenId])
+  }, [tokenId, refreshKey])
 
   if (loading) {
     return (
@@ -109,9 +110,10 @@ interface WarriorListProps {
   selectedTokenId: number | null
   onSelectToken: (tokenId: number) => void
   title?: string
+  refreshKey?: number
 }
 
-export function WarriorList({ tokenIds, loading, error, selectedTokenId, onSelectToken, title }: WarriorListProps) {
+export function WarriorList({ tokenIds, loading, error, selectedTokenId, onSelectToken, title, refreshKey }: WarriorListProps) {
 
   if (loading) {
     return (
@@ -156,10 +158,11 @@ export function WarriorList({ tokenIds, loading, error, selectedTokenId, onSelec
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {tokenIds.map((tokenId) => (
           <WarriorCard
-            key={tokenId}
+            key={`${tokenId}-${refreshKey || 0}`}
             tokenId={tokenId}
             isSelected={selectedTokenId === tokenId}
             onClick={() => onSelectToken(tokenId)}
+            refreshKey={refreshKey}
           />
         ))}
       </div>
