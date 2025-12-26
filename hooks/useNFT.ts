@@ -2,14 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { ethers } from "ethers"
-import { fetchMetadata, buildGatewayUrls } from "@/lib/ipfs"
-
-export interface NFTMetadata {
-  name: string
-  description: string
-  image: string
-  [key: string]: any
-}
+import { fetchMetadata, buildGatewayUrls } from "@/lib/services/ipfs"
+import type { NFTMetadata } from "@/types/api"
 
 export function useNFT(rpcUrl: string, contractAddress: string, tokenId: number) {
   const [metadata, setMetadata] = useState<NFTMetadata | null>(null)
@@ -63,9 +57,10 @@ export function useNFT(rpcUrl: string, contractAddress: string, tokenId: number)
         setMetadata(fetchedMetadata)
         setImageUrl(imageUrls[0] || "")
         setLoading(false)
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (cancelled) return
-        setError(err.message || "Failed to fetch NFT")
+        const errorMessage = err instanceof Error ? err.message : "Failed to fetch NFT"
+        setError(errorMessage)
         setLoading(false)
       }
     }

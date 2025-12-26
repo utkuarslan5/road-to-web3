@@ -4,8 +4,9 @@ import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { WEEK3_CONFIG, CHAIN_BATTLES_ABI } from "@/lib/contracts"
+import { WEEK3_CONFIG, CHAIN_BATTLES_ABI } from "@/lib/config/contracts"
 import { getProvider, getContract } from "@/lib/ethers"
+import { extractErrorMessage, isContractRevertError } from "@/lib/errors"
 import { ethers } from "ethers"
 import { Swords } from "lucide-react"
 
@@ -58,11 +59,11 @@ export function WarriorDisplay({ tokenId, refreshKey }: { tokenId: number | null
             }
           }
         }
-      } catch (err: any) {
-        if (err.message?.includes("execution reverted") || err.message?.includes("require")) {
-          setError(`Token #${tokenId} does not exist`)
+      } catch (err: unknown) {
+        if (isContractRevertError(err)) {
+          setError(`Token ID ${tokenId} does not exist. Mint a warrior first!`)
         } else {
-          setError(err.message || "Failed to load warrior")
+          setError(extractErrorMessage(err))
         }
         setSvgData("")
       } finally {

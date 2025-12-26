@@ -1,27 +1,10 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { ethers } from "ethers"
 import { getProvider, ensureCorrectNetwork, resetProvider } from "@/lib/ethers"
-import type { ChainConfig } from "@/config/chains"
-
-export interface WalletState {
-  address: string | null
-  provider: ethers.BrowserProvider | null
-  signer: ethers.JsonRpcSigner | null
-  isConnected: boolean
-  isConnecting: boolean
-  error: string | null
-}
-
-// Helper to check if error is a message port error
-function isMessagePortError(error: any): boolean {
-  return (
-    error?.message?.includes("message port closed") ||
-    error?.message?.includes("The message port closed") ||
-    error?.code === "UNPREDICTABLE_GAS_LIMIT"
-  )
-}
+import { isMessagePortError } from "@/lib/errors"
+import type { ChainConfig } from "@/lib/config/chains"
+import type { WalletState } from "@/types/ethers"
 
 export function useWallet(chainConfig?: ChainConfig) {
   const [state, setState] = useState<WalletState>({
@@ -54,7 +37,7 @@ export function useWallet(chainConfig?: ChainConfig) {
       // Request account access with error handling
       try {
         await provider.send("eth_requestAccounts", [])
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (isMessagePortError(error)) {
           // Reset provider and retry once
           resetProvider()
@@ -91,10 +74,11 @@ export function useWallet(chainConfig?: ChainConfig) {
         isConnecting: false,
         error: null,
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to connect wallet"
       setState((prev) => ({
         ...prev,
-        error: error.message || "Failed to connect wallet",
+        error: errorMessage,
         isConnecting: false,
       }))
     }
@@ -146,7 +130,7 @@ export function useWallet(chainConfig?: ChainConfig) {
             error: null,
           })
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Silently handle message port errors on initial check
         if (!isMessagePortError(error)) {
           // Only log non-port errors for debugging

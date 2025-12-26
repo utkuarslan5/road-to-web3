@@ -152,12 +152,24 @@ road-to-web3/
 │   ├── layout/            # Layout components
 │   └── week*/             # Week-specific components
 ├── lib/                   # Utilities & services
-│   ├── contracts.ts       # Contract configs
+│   ├── config/            # Configuration
+│   │   ├── env.ts         # Environment variables
+│   │   ├── chains.ts      # Chain configurations
+│   │   └── contracts.ts   # Contract configs & ABIs
+│   ├── services/          # Service layer
+│   │   └── ipfs.ts        # IPFS service
 │   ├── alchemy.ts         # Alchemy API client
 │   ├── ethers.ts          # Ethers helpers
-│   └── ipfs.ts            # IPFS helpers
+│   ├── errors.ts          # Error utilities
+│   ├── ipfs.ts            # IPFS helpers (deprecated, use services/ipfs)
+│   ├── contracts.ts       # Deprecated (use config/contracts)
+│   └── utils.ts           # General utilities
+├── types/                 # Type definitions
+│   ├── contracts.ts       # Contract types
+│   ├── ethers.ts          # Ethers types
+│   └── api.ts             # API types
 ├── hooks/                 # Custom React hooks
-├── config/                # Configuration
+├── config/                # Deprecated (use lib/config)
 ├── week2-buy-me-a-coffee/ # Contract (separate)
 ├── week3-on-chain-nft/   # Contract (separate)
 └── public/                # Static assets
@@ -196,7 +208,7 @@ road-to-web3/
 ## 🔧 Configuration
 
 ### Contract Addresses
-Edit `lib/contracts.ts` to update contract addresses and configurations.
+Edit `lib/config/contracts.ts` to update contract addresses and configurations.
 
 ### Alchemy API Key
 1. Get your API key from [alchemy.com](https://www.alchemy.com/)

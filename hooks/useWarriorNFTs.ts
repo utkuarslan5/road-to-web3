@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { ethers } from "ethers"
 import { getProvider, getContract } from "@/lib/ethers"
-import { WEEK3_CONFIG, CHAIN_BATTLES_ABI } from "@/lib/contracts"
+import { WEEK3_CONFIG, CHAIN_BATTLES_ABI } from "@/lib/config/contracts"
 
 export function useWarriorNFTs(ownerAddress: string | null) {
   const [tokenIds, setTokenIds] = useState<number[]>([])
@@ -102,8 +102,9 @@ export function useWarriorNFTs(ownerAddress: string | null) {
       setTokenIds(foundTokenIds)
       setLoading(false)
       
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch NFTs")
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to fetch NFTs"
+      setError(errorMessage)
       setTokenIds([])
       setLoading(false)
     }

@@ -3,9 +3,10 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
-import { RARITY_LABELS } from "@/lib/contracts"
+import { RARITY_LABELS } from "@/lib/config/contracts"
 import { getProvider, getContract } from "@/lib/ethers"
-import { WEEK3_CONFIG, CHAIN_BATTLES_ABI } from "@/lib/contracts"
+import { WEEK3_CONFIG, CHAIN_BATTLES_ABI } from "@/lib/config/contracts"
+import type { WarriorStats } from "@/types/contracts"
 import { ethers } from "ethers"
 import { useEffect, useState } from "react"
 import { Swords } from "lucide-react"
@@ -17,9 +18,14 @@ interface WarriorCardProps {
   refreshKey?: number
 }
 
+interface WarriorCardStats {
+  level: number
+  rarity: number
+}
+
 function WarriorCard({ tokenId, isSelected, onClick, refreshKey }: WarriorCardProps) {
   const [svgData, setSvgData] = useState<string>("")
-  const [stats, setStats] = useState<any>(null)
+  const [stats, setStats] = useState<WarriorCardStats | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

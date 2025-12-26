@@ -4,7 +4,7 @@ import { Footer } from "@/components/layout/Footer"
 import { CoffeeForm } from "@/components/week2/CoffeeForm"
 import { MemoBoard } from "@/components/week2/MemoBoard"
 import { Card } from "@/components/ui/card"
-import { WEEK2_CONFIG } from "@/lib/contracts"
+import { WEEK2_CONFIG } from "@/lib/config/contracts"
 import { truncateAddress } from "@/lib/utils"
 import Link from "next/link"
 

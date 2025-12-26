@@ -1,5 +1,7 @@
 // Alchemy NFT API client
 
+import { convertIpfsUrl } from "./services/ipfs"
+
 const ALCHEMY_API_KEY = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY || "YOUR_API_KEY_HERE"
 const BASE_URL = `https://eth-mainnet.g.alchemy.com/nft/v3/${ALCHEMY_API_KEY}`
 
@@ -225,112 +227,53 @@ export class AlchemyService {
   }
 
   getImageUrl(nft: NFT): string {
-    // Helper function to convert IPFS URL to gateway URL
-    const ipfsToGateway = (url: string): string => {
-      if (!url || typeof url !== 'string') return ""
-      
-      if (url.startsWith("ipfs://")) {
-        const cid = url.replace("ipfs://", "").replace(/\/$/, "")
-        return `https://cloudflare-ipfs.com/ipfs/${cid}`
-      }
-      
-      // Try to extract CID from various formats
-      const cidPattern = /(Qm[1-9A-HJ-NP-Za-km-z]{44,}|bafy[0-9a-z]{50,})/i
-      const cidMatch = url.match(cidPattern)
-      if (cidMatch && cidMatch[1]) {
-        return `https://cloudflare-ipfs.com/ipfs/${cidMatch[1]}`
-      }
-      
-      return url
-    }
-    
-    // Helper to validate and clean URL
-    const cleanUrl = (url: any): string => {
-      if (!url || typeof url !== 'string') return ""
-      const cleaned = url.trim()
-      if (!cleaned || cleaned === "null" || cleaned === "undefined" || cleaned === "") return ""
-      return cleaned
-    }
-    
     // Priority 1: Try image.cachedUrl (Alchemy's v3 API structure - most reliable)
     if (nft.image?.cachedUrl) {
-      const cachedUrl = cleanUrl(nft.image.cachedUrl)
-      if (cachedUrl) return cachedUrl
+      const url = convertIpfsUrl(nft.image.cachedUrl)
+      if (url) return url
     }
     
     // Priority 2: Try image.pngUrl (Alchemy's converted PNG)
     if (nft.image?.pngUrl) {
-      const pngUrl = cleanUrl(nft.image.pngUrl)
-      if (pngUrl) return pngUrl
+      const url = convertIpfsUrl(nft.image.pngUrl)
+      if (url) return url
     }
     
     // Priority 3: Try image.thumbnailUrl (smaller but faster)
     if (nft.image?.thumbnailUrl) {
-      const thumbnailUrl = cleanUrl(nft.image.thumbnailUrl)
-      if (thumbnailUrl) return thumbnailUrl
+      const url = convertIpfsUrl(nft.image.thumbnailUrl)
+      if (url) return url
     }
     
     // Priority 4: Try image.originalUrl (original IPFS URL - convert to gateway)
     if (nft.image?.originalUrl) {
-      const originalUrl = cleanUrl(nft.image.originalUrl)
-      if (originalUrl) {
-        if (originalUrl.startsWith("ipfs://")) {
-          return ipfsToGateway(originalUrl)
-        }
-        if (originalUrl.startsWith("http://") || originalUrl.startsWith("https://")) {
-          return originalUrl
-        }
-        return ipfsToGateway(originalUrl)
-      }
+      const url = convertIpfsUrl(nft.image.originalUrl)
+      if (url) return url
     }
     
     // Priority 5: Try raw.metadata.image (from v3 API structure)
     if (nft.raw?.metadata?.image) {
-      const imageUrl = cleanUrl(nft.raw.metadata.image)
-      if (imageUrl) {
-        if (imageUrl.startsWith("ipfs://")) {
-          return ipfsToGateway(imageUrl)
-        }
-        if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
-          return imageUrl
-        }
-        return ipfsToGateway(imageUrl)
-      }
+      const url = convertIpfsUrl(nft.raw.metadata.image)
+      if (url) return url
     }
     
     // Priority 6: Try legacy media gateway (for getNFTs endpoint compatibility)
     if (nft.media && Array.isArray(nft.media) && nft.media.length > 0) {
       const mediaItem = nft.media[0]
       if (mediaItem.gateway) {
-        const gateway = cleanUrl(mediaItem.gateway)
-        if (gateway) return gateway
+        const url = convertIpfsUrl(mediaItem.gateway)
+        if (url) return url
       }
       if (mediaItem.raw) {
-        const rawUrl = cleanUrl(mediaItem.raw)
-        if (rawUrl) {
-          if (rawUrl.startsWith("ipfs://")) {
-            return ipfsToGateway(rawUrl)
-          }
-          if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
-            return rawUrl
-          }
-          return ipfsToGateway(rawUrl)
-        }
+        const url = convertIpfsUrl(mediaItem.raw)
+        if (url) return url
       }
     }
     
     // Priority 7: Try legacy metadata image (for getNFTs endpoint compatibility)
     if (nft.metadata?.image) {
-      const imageUrl = cleanUrl(nft.metadata.image)
-      if (imageUrl) {
-        if (imageUrl.startsWith("ipfs://")) {
-          return ipfsToGateway(imageUrl)
-        }
-        if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
-          return imageUrl
-        }
-        return ipfsToGateway(imageUrl)
-      }
+      const url = convertIpfsUrl(nft.metadata.image)
+      if (url) return url
     }
     
     return ""

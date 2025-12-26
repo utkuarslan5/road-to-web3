@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useNFT } from "@/hooks/useNFT"
-import { WEEK1_CONFIG } from "@/lib/contracts"
+import { WEEK1_CONFIG } from "@/lib/config/contracts"
 import Image from "next/image"
 
 export function NFTDisplay() {

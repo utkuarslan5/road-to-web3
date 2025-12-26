@@ -1,67 +1,15 @@
 // IPFS gateway helpers
+// Deprecated: This file is kept for backward compatibility
+// New code should import from @/lib/services/ipfs instead
 
-export const IPFS_GATEWAYS = [
-  "https://ipfs.io/ipfs/",
-  "https://cloudflare-ipfs.com/ipfs/",
-  "https://nftstorage.link/ipfs/",
-  "https://gateway.pinata.cloud/ipfs/",
-] as const
+export {
+  IPFS_GATEWAYS,
+  isLikelyCid,
+  buildGatewayUrls,
+  fetchMetadata,
+} from "./services/ipfs"
 
-export function isLikelyCid(value: string): boolean {
-  return /^(?:Qm[1-9A-HJ-NP-Za-km-z]{44,}|bafy[0-9a-z]{50,})$/i.test(value)
-}
-
-export function buildGatewayUrls(uri: string): string[] {
-  if (!uri) return []
-  
-  // Handle data URIs
-  if (uri.startsWith("data:")) {
-    return [uri]
-  }
-  
-  // Handle HTTP/HTTPS URLs
-  if (uri.startsWith("http://") || uri.startsWith("https://")) {
-    return [uri]
-  }
-  
-  // Handle ipfs:// protocol
-  if (uri.startsWith("ipfs://")) {
-    const cid = uri.replace("ipfs://", "")
-    return IPFS_GATEWAYS.map(gateway => `${gateway}${cid}`)
-  }
-  
-  // Handle direct CID
-  if (isLikelyCid(uri)) {
-    return IPFS_GATEWAYS.map(gateway => `${gateway}${uri}`)
-  }
-  
-  // Try to extract CID from path
-  const cidMatch = uri.match(/(Qm[1-9A-HJ-NP-Za-km-z]{44,}|bafy[0-9a-z]{50,})/i)
-  if (cidMatch) {
-    const cid = cidMatch[1]
-    return IPFS_GATEWAYS.map(gateway => `${gateway}${cid}`)
-  }
-  
-  return [uri]
-}
-
-export async function fetchMetadata(urls: string | string[]): Promise<any> {
-  const attempts = Array.isArray(urls) ? urls : [urls]
-  
-  for (const url of attempts) {
-    try {
-      const res = await fetch(url, { cache: "no-store" })
-      if (res.ok) {
-        return await res.json()
-      }
-    } catch (err) {
-      console.warn(`Failed to fetch ${url}:`, err)
-    }
-  }
-  
-  throw new Error("Metadata fetch failed from all gateways")
-}
-
+// decodeAbiString is still used, keep it here
 export function decodeAbiString(hex: string): string {
   // Remove 0x prefix
   const cleanHex = hex.startsWith("0x") ? hex.slice(2) : hex

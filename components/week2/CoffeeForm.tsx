@@ -9,9 +9,10 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { useWallet } from "@/hooks/useWallet"
 import { useContract } from "@/hooks/useContract"
-import { WEEK2_CONFIG, COFFEE_ABI } from "@/lib/contracts"
-import { parseEther, extractErrorMessage } from "@/lib/utils"
-import { SEPOLIA } from "@/config/chains"
+import { WEEK2_CONFIG, COFFEE_ABI } from "@/lib/config/contracts"
+import { parseEther } from "@/lib/utils"
+import { extractErrorMessage } from "@/lib/errors"
+import { SEPOLIA } from "@/lib/config/chains"
 import { useToast } from "@/hooks/use-toast"
 
 export function CoffeeForm() {
@@ -62,7 +63,7 @@ export function CoffeeForm() {
       setName("")
       setMessage("")
       setAmount(WEEK2_CONFIG.defaultAmountEth)
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error",
         description: extractErrorMessage(error),

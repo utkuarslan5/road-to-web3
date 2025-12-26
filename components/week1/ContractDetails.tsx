@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { WEEK1_CONFIG } from "@/lib/contracts"
+import { WEEK1_CONFIG } from "@/lib/config/contracts"
 import { truncateAddress } from "@/lib/utils"
 import Link from "next/link"
 

@@ -1,15 +1,21 @@
 "use client"
 
 import { useMemo } from "react"
-import { ethers } from "ethers"
+import type { ethers } from "ethers"
 import { getContract } from "@/lib/ethers"
-import type { WalletState } from "./useWallet"
+import type { WalletState, ContractTransactionOptions } from "@/types/ethers"
+
+export interface UseContractReturn {
+  contract: ethers.Contract | null
+  sendTransaction: (methodName: string, ...args: unknown[]) => Promise<ethers.ContractTransactionResponse>
+  call: <T = unknown>(methodName: string, ...args: unknown[]) => Promise<T>
+}
 
 export function useContract(
   address: string,
   abi: readonly string[],
   wallet: WalletState
-) {
+): UseContractReturn {
   const contract = useMemo(() => {
     if (!address || !abi || !wallet.provider) {
       return null
@@ -21,7 +27,7 @@ export function useContract(
 
   const sendTransaction = async (
     methodName: string,
-    ...args: any[]
+    ...args: unknown[]
   ): Promise<ethers.ContractTransactionResponse> => {
     if (!contract) {
       throw new Error("Contract not initialized")
@@ -33,24 +39,30 @@ export function useContract(
 
     // Handle last argument as options (for value, etc.)
     const lastArg = args[args.length - 1]
-    const hasOptions = lastArg && typeof lastArg === "object" && !Array.isArray(lastArg) && ("value" in lastArg || "gasLimit" in lastArg)
+    const hasOptions = 
+      lastArg && 
+      typeof lastArg === "object" && 
+      !Array.isArray(lastArg) && 
+      (lastArg as ContractTransactionOptions).value !== undefined || 
+      (lastArg as ContractTransactionOptions).gasLimit !== undefined
     
     if (hasOptions) {
-      const options = args.pop()
-      const tx = await (contract as any)[methodName](...args, options)
-      return tx
+      const options = args.pop() as ContractTransactionOptions
+      const contractMethod = contract[methodName as keyof typeof contract] as (...args: unknown[]) => Promise<ethers.ContractTransactionResponse>
+      return await contractMethod(...args, options)
     } else {
-      const tx = await (contract as any)[methodName](...args)
-      return tx
+      const contractMethod = contract[methodName as keyof typeof contract] as (...args: unknown[]) => Promise<ethers.ContractTransactionResponse>
+      return await contractMethod(...args)
     }
   }
 
-  const call = async (methodName: string, ...args: any[]): Promise<any> => {
+  const call = async <T = unknown>(methodName: string, ...args: unknown[]): Promise<T> => {
     if (!contract) {
       throw new Error("Contract not initialized")
     }
 
-    return await (contract as any)[methodName](...args)
+    const contractMethod = contract[methodName as keyof typeof contract] as (...args: unknown[]) => Promise<T>
+    return await contractMethod(...args)
   }
 
   return {

@@ -8,9 +8,9 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { useWallet } from "@/hooks/useWallet"
 import { useContract } from "@/hooks/useContract"
-import { WEEK3_CONFIG, CHAIN_BATTLES_ABI } from "@/lib/contracts"
-import { POLYGON_AMOY } from "@/config/chains"
-import { extractErrorMessage } from "@/lib/utils"
+import { WEEK3_CONFIG, CHAIN_BATTLES_ABI } from "@/lib/config/contracts"
+import { POLYGON_AMOY } from "@/lib/config/chains"
+import { extractErrorMessage } from "@/lib/errors"
 import { useToast } from "@/hooks/use-toast"
 import { Plus, TrendingUp, Eye } from "lucide-react"
 
@@ -58,7 +58,7 @@ export function WarriorActions({
       if (onMintSuccess) {
         await onMintSuccess()
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error",
         description: extractErrorMessage(error),
@@ -95,21 +95,10 @@ export function WarriorActions({
         onTrainSuccess()
       }
       onTokenChange(currentTokenId)
-    } catch (error: any) {
+    } catch (error: unknown) {
       const message = extractErrorMessage(error)
-      const errorString = JSON.stringify(error).toLowerCase()
 
-      const cooldownPatterns = [/cooldown/i, /CooldownActive/i, /wait.*before/i, /not ready/i]
-      const isCooldownError = cooldownPatterns.some(pattern =>
-        pattern.test(message) || pattern.test(errorString)
-      )
-
-      const insufficientFundsPatterns = [/insufficient funds/i, /insufficient balance/i]
-      const isInsufficientFunds = insufficientFundsPatterns.some(pattern =>
-        pattern.test(message) || pattern.test(errorString)
-      )
-
-      if (isCooldownError) {
+      if (isCooldownError(error)) {
         try {
           const stats = await call("statsOf", currentTokenId)
           if (stats && stats.lastAction) {
@@ -140,7 +129,7 @@ export function WarriorActions({
             description: "Please wait 60 seconds before training again",
           })
         }
-      } else if (isInsufficientFunds) {
+      } else if (isInsufficientFundsError(error)) {
         toast({
           title: "Insufficient Funds",
           description: "You need more MATIC to pay for gas",

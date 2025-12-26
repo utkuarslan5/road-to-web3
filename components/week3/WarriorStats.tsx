@@ -4,20 +4,11 @@ import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { WEEK3_CONFIG, CHAIN_BATTLES_ABI, RARITY_LABELS } from "@/lib/contracts"
+import { WEEK3_CONFIG, CHAIN_BATTLES_ABI, RARITY_LABELS } from "@/lib/config/contracts"
 import { getProvider, getContract } from "@/lib/ethers"
+import { extractErrorMessage, isContractRevertError } from "@/lib/errors"
 import { ethers } from "ethers"
-
-interface WarriorStats {
-  lastAction: bigint
-  level: number
-  power: number
-  agility: number
-  vitality: number
-  victories: number
-  defeats: number
-  rarity: number
-}
+import type { WarriorStats } from "@/types/contracts"
 
 export function WarriorStats({ tokenId, refreshKey }: { tokenId: number | null; refreshKey?: number }) {
   const [stats, setStats] = useState<WarriorStats | null>(null)
@@ -50,11 +41,11 @@ export function WarriorStats({ tokenId, refreshKey }: { tokenId: number | null; 
           defeats: Number(statsData.defeats),
           rarity: Number(statsData.rarity),
         })
-      } catch (err: any) {
-        if (err.message?.includes("execution reverted") || err.message?.includes("require")) {
+      } catch (err: unknown) {
+        if (isContractRevertError(err)) {
           setError(`Token #${tokenId} does not exist`)
         } else {
-          setError(err.message || "Failed to load stats")
+          setError(extractErrorMessage(err))
         }
         setStats(null)
       } finally {

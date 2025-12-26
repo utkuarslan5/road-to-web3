@@ -27,19 +27,6 @@ export function parseEther(value: string): bigint {
   return BigInt(whole) * BigInt(10 ** 18) + BigInt(padded || "0")
 }
 
-export function extractErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message
-  }
-  if (typeof error === "string") {
-    return error
-  }
-  if (error && typeof error === "object" && "message" in error) {
-    return String(error.message)
-  }
-  if (error && typeof error === "object" && "reason" in error) {
-    return String(error.reason)
-  }
-  return "An unknown error occurred"
-}
+// Re-export extractErrorMessage from errors.ts for backward compatibility
+export { extractErrorMessage } from "./errors"
 

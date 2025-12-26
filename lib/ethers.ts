@@ -1,20 +1,12 @@
 // Ethers.js helpers
 
 import { ethers } from "ethers"
+import { isMessagePortError } from "./errors"
 
 export function ensureEthers(): void {
   if (typeof window === "undefined") {
     throw new Error("Ethers.js can only be used in browser environment")
   }
-}
-
-// Helper to check if error is a message port error
-function isMessagePortError(error: any): boolean {
-  return (
-    error?.message?.includes("message port closed") ||
-    error?.message?.includes("The message port closed") ||
-    error?.code === "UNPREDICTABLE_GAS_LIMIT" // Sometimes related to port issues
-  )
 }
 
 export async function ensureCorrectNetwork(
@@ -59,7 +51,7 @@ export async function ensureCorrectNetwork(
         }
       }
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (isMessagePortError(error)) {
       console.warn("MetaMask connection interrupted during network check")
       return
@@ -84,7 +76,7 @@ export function getProvider(): ethers.BrowserProvider | null {
   try {
     providerInstance = new ethers.BrowserProvider((window as any).ethereum)
     return providerInstance
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (isMessagePortError(error)) {
       console.warn("MetaMask connection interrupted, will retry on next call")
       // Reset instance so it can be retried

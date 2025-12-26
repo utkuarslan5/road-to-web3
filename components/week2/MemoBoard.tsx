@@ -5,34 +5,18 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useContract } from "@/hooks/useContract"
-import { WEEK2_CONFIG, COFFEE_ABI } from "@/lib/contracts"
+import { WEEK2_CONFIG, COFFEE_ABI } from "@/lib/config/contracts"
 import { getProvider, getContract } from "@/lib/ethers"
+import { extractErrorMessage } from "@/lib/errors"
 import { ethers } from "ethers"
 import { formatDistanceToNow } from "date-fns"
 import { RefreshCw, Coffee } from "lucide-react"
-
-interface Memo {
-  supporter: string
-  timestamp: bigint
-  name: string
-  message: string
-}
+import type { Memo } from "@/types/contracts"
 
 export function MemoBoard() {
   const [memos, setMemos] = useState<Memo[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  const wallet = {
-    address: null,
-    provider: null,
-    signer: null,
-    isConnected: false,
-    isConnecting: false,
-    error: null,
-  }
-  const { call } = useContract(WEEK2_CONFIG.contractAddress, COFFEE_ABI, wallet)
 
   const fetchMemos = async () => {
     try {
@@ -45,8 +29,9 @@ export function MemoBoard() {
       let memosData: Memo[] = []
       try {
         memosData = await contract.memos() as Memo[]
-      } catch (callErr: any) {
-        if (callErr.code === 'BAD_DATA' && (callErr.value === '0x' || callErr.info?.method === 'memos')) {
+      } catch (callErr: unknown) {
+        const error = callErr as { code?: string; value?: string; info?: { method?: string } }
+        if (error.code === 'BAD_DATA' && (error.value === '0x' || error.info?.method === 'memos')) {
           memosData = []
         } else {
           throw callErr
@@ -54,8 +39,8 @@ export function MemoBoard() {
       }
 
       setMemos(memosData)
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch memos")
+    } catch (err: unknown) {
+      setError(extractErrorMessage(err))
     } finally {
       setLoading(false)
     }

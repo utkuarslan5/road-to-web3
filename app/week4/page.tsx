@@ -8,7 +8,7 @@ import { SearchForm } from "@/components/week4/SearchForm"
 import { NFTGrid } from "@/components/week4/NFTGrid"
 import { PaginationControls } from "@/components/week4/PaginationControls"
 import { AlchemyService, type NFT } from "@/lib/alchemy"
-import { extractErrorMessage } from "@/lib/utils"
+import { extractErrorMessage } from "@/lib/errors"
 import { useToast } from "@/hooks/use-toast"
 
 const DEFAULT_COLLECTION = "0xbd3531da5cf5857e7cfaa92426877b022e612cf8"
