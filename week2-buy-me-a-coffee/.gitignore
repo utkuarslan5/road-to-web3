@@ -1,23 +1,23 @@
 # Node modules
-week2/node_modules
+/node_modules
 
 # Compilation output
-week2/dist
+/dist
 
-week2/bundle
+# pnpm deploy output
+/bundle
 
 # Hardhat Build Artifacts
-week2/artifacts
+/artifacts
 
 # Hardhat compilation (v2) support directory
-week2/cache
+/cache
 
 # Typechain output
-week2/types
+/types
 
 # Hardhat coverage reports
-week2/coverage
+/coverage
 
-week2/.env
 
-.claude
+.env
