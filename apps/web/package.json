@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1",
-    "build": "rm -rf .next out && next build --webpack --experimental-build-mode compile && next build --webpack --experimental-build-mode generate",
+    "build": "rm -rf .next out && next build --webpack",
     "start": "next start",
     "lint": "echo \"web lint is pending migration\"",
     "test": "echo \"No app-level tests yet\""

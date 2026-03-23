@@ -6,24 +6,13 @@ type NetworkName = "mainnet" | "sepolia" | "polygon-amoy"
 // NEXT_PUBLIC_* variables (not dynamic process.env[name] lookups).
 const NEXT_PUBLIC_ALCHEMY_MAINNET_API_KEY =
   process.env.NEXT_PUBLIC_ALCHEMY_MAINNET_API_KEY?.trim() || ""
-const NEXT_PUBLIC_ALCHEMY_API_KEY =
-  process.env.NEXT_PUBLIC_ALCHEMY_API_KEY?.trim() || ""
 const NEXT_PUBLIC_ALCHEMY_SEPOLIA_API_KEY =
   process.env.NEXT_PUBLIC_ALCHEMY_SEPOLIA_API_KEY?.trim() || ""
 const NEXT_PUBLIC_ALCHEMY_POLYGON_AMOY_API_KEY =
   process.env.NEXT_PUBLIC_ALCHEMY_POLYGON_AMOY_API_KEY?.trim() || ""
 
-function getMainnetKeyFromEnv(): string {
-  // Canonical key for this monorepo
-  const canonical = NEXT_PUBLIC_ALCHEMY_MAINNET_API_KEY
-  if (canonical) return canonical
-
-  // Temporary compatibility alias during migration
-  return NEXT_PUBLIC_ALCHEMY_API_KEY
-}
-
 export const env = {
-  alchemyMainnetApiKey: getMainnetKeyFromEnv(),
+  alchemyMainnetApiKey: NEXT_PUBLIC_ALCHEMY_MAINNET_API_KEY,
   alchemySepoliaApiKey: NEXT_PUBLIC_ALCHEMY_SEPOLIA_API_KEY,
   alchemyPolygonAmoyApiKey: NEXT_PUBLIC_ALCHEMY_POLYGON_AMOY_API_KEY,
 } as const
@@ -55,7 +44,7 @@ export function getAlchemyRpcUrl(network: NetworkName, apiKey?: string): string 
     if (typeof window === "undefined") {
       const envHint =
         network === "mainnet"
-          ? "Set NEXT_PUBLIC_ALCHEMY_MAINNET_API_KEY (or NEXT_PUBLIC_ALCHEMY_API_KEY) in .env.local"
+          ? "Set NEXT_PUBLIC_ALCHEMY_MAINNET_API_KEY in .env.local"
           : `Set NEXT_PUBLIC_ALCHEMY_${network.toUpperCase().replace("-", "_")}_API_KEY in .env.local`
 
       console.warn(`Warning: Using fallback API key for ${network}. ${envHint}`)

@@ -133,7 +133,7 @@ export default function Week06Page() {
           if (!cancelled) {
             setSnapshot(null)
             setDeploymentWarning(
-              "Week 6 is still using a zero-address placeholder. Deploy the Staker contract and update apps/web/lib/config/contracts.ts to enable transactions."
+              "Week 6 is still using a zero-address placeholder. Deploy the Staker contract and update the shared contract config or local env override to enable transactions."
             )
           }
           return

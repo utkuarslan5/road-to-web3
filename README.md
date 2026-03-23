@@ -68,13 +68,9 @@ Create `.env.local` at the repository root.
 - `NEXT_PUBLIC_ALCHEMY_SEPOLIA_API_KEY`
 - `NEXT_PUBLIC_ALCHEMY_POLYGON_AMOY_API_KEY`
 
-Legacy compatibility alias still supported:
+### Optional Contract Address Overrides
 
-- `NEXT_PUBLIC_ALCHEMY_API_KEY`
-
-### Contract Address Overrides
-
-The website reads deployed addresses from env rather than hardcoding them in page components:
+Public contract addresses are now committed in shared config. Use env overrides only when you want to temporarily point the site at different deployments:
 
 - `NEXT_PUBLIC_WEEK1_TROPHY_ADDRESS`
 - `NEXT_PUBLIC_WEEK2_COFFEE_ADDRESS`
@@ -118,5 +114,6 @@ Config files:
 ## Notes
 
 - `packages/shared` is the source of truth for shared UI and web3 logic
-- `apps/web` is now primarily composition, routing, and app shell
+- `apps/web` now only owns Next-specific concerns: routing, global styles, export config, and the week registry
+- old `apps/web` compatibility shims were removed; consumers should import from `@road/shared` directly
 - Tailwind content scanning includes `packages/shared/src` and `packages/weeks/*/src`, so shared styles render correctly in the app
