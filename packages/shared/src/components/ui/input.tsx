@@ -1,22 +1,46 @@
 import * as React from "react"
+import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "../../lib/utils"
 
-const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, type, ...props }, ref) => {
+const inputVariants = cva(
+  [
+    "flex h-11 w-full rounded-lg border-2 bg-screen px-4 py-2 text-base text-foreground ring-offset-background transition-all duration-200",
+    "file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground",
+    "placeholder:text-muted-foreground",
+    "focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+  ],
+  {
+    variants: {
+      variant: {
+        default:
+          "border-border hover:border-primary/50 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:shadow-glow-cyan",
+        week1:
+          "border-week1/30 hover:border-week1/50 focus-visible:border-week1 focus-visible:ring-2 focus-visible:ring-week1/20 focus-visible:shadow-glow-week1",
+        week2:
+          "border-week2/30 hover:border-week2/50 focus-visible:border-week2 focus-visible:ring-2 focus-visible:ring-week2/20 focus-visible:shadow-glow-week2",
+        week3:
+          "border-week3/30 hover:border-week3/50 focus-visible:border-week3 focus-visible:ring-2 focus-visible:ring-week3/20 focus-visible:shadow-glow-week3",
+        week4:
+          "border-week4/30 hover:border-week4/50 focus-visible:border-week4 focus-visible:ring-2 focus-visible:ring-week4/20 focus-visible:shadow-glow-week4",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+)
+
+export interface InputProps
+  extends React.ComponentProps<"input">,
+    VariantProps<typeof inputVariants> {}
+
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ className, type, variant, ...props }, ref) => {
     return (
       <input
         type={type}
-        className={cn(
-          "flex h-11 w-full rounded-lg border-2 border-border bg-screen px-4 py-2 text-base text-foreground ring-offset-background transition-all duration-200",
-          "file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground",
-          "placeholder:text-muted-foreground",
-          "hover:border-primary/50",
-          "focus-visible:outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:shadow-glow-cyan",
-          "disabled:cursor-not-allowed disabled:opacity-50",
-          "md:text-sm",
-          className
-        )}
+        className={cn(inputVariants({ variant }), className)}
         ref={ref}
         {...props}
       />
@@ -25,4 +49,4 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
 )
 Input.displayName = "Input"
 
-export { Input }
+export { Input, inputVariants }

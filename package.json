@@ -7,12 +7,17 @@
     "dev": "pnpm --filter @road/web dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
+    "typecheck": "pnpm --filter @road/web exec tsc --noEmit",
     "test": "turbo run test",
     "week:dev": "node scripts/week-task.mjs dev",
     "week:contracts": "node scripts/week-task.mjs contracts",
-    "week:test": "node scripts/week-task.mjs test"
+    "week:test": "node scripts/week-task.mjs test",
+    "design:lint:consumers": "bash -lc 'files=$(rg --files apps/web/app packages/weeks -g \"*.ts\" -g \"*.tsx\" | tr \"\\\\n\" \" \"); design-lint $files --config designlint.config.mjs'",
+    "design:lint:shared": "bash -lc 'files=$(rg --files packages/shared/src/components -g \"*.ts\" -g \"*.tsx\" | tr \"\\\\n\" \" \"); design-lint $files --config designlint.shared.config.mjs'",
+    "design:lint": "pnpm design:lint:consumers && pnpm design:lint:shared"
   },
   "devDependencies": {
+    "@lapidist/design-lint": "^7.0.1",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-slot": "^1.2.4",

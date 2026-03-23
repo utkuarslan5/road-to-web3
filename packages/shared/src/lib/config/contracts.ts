@@ -59,6 +59,16 @@ export const EXAMPLE_EXTERNAL_CONTRACT_ABI = [
 
 export const RARITY_LABELS = ["Common", "Uncommon", "Rare", "Epic", "Mythic"] as const
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const
+const NEXT_PUBLIC_WEEK1_TROPHY_ADDRESS =
+  process.env.NEXT_PUBLIC_WEEK1_TROPHY_ADDRESS?.trim() || ""
+const NEXT_PUBLIC_WEEK2_COFFEE_ADDRESS =
+  process.env.NEXT_PUBLIC_WEEK2_COFFEE_ADDRESS?.trim() || ""
+const NEXT_PUBLIC_WEEK3_CHAIN_BATTLES_ADDRESS =
+  process.env.NEXT_PUBLIC_WEEK3_CHAIN_BATTLES_ADDRESS?.trim() || ""
+const NEXT_PUBLIC_WEEK3_DEPLOYER_ADDRESS =
+  process.env.NEXT_PUBLIC_WEEK3_DEPLOYER_ADDRESS?.trim() || ""
+const NEXT_PUBLIC_WEEK5_BULLBEAR_ADDRESS =
+  process.env.NEXT_PUBLIC_WEEK5_BULLBEAR_ADDRESS?.trim() || ""
 const NEXT_PUBLIC_WEEK6_STAKER_ADDRESS =
   process.env.NEXT_PUBLIC_WEEK6_STAKER_ADDRESS?.trim() || ""
 const NEXT_PUBLIC_WEEK6_EXAMPLE_EXTERNAL_CONTRACT_ADDRESS =
@@ -69,7 +79,8 @@ const NEXT_PUBLIC_WEEK6_EXAMPLE_EXTERNAL_CONTRACT_ADDRESS =
  */
 export const WEEK1_CONFIG = {
   ...SEPOLIA,
-  contractAddress: "0xc84a1D9044Ceb74EC8C17FfD465f1af6Fe0e53DF",
+  contractAddress:
+    NEXT_PUBLIC_WEEK1_TROPHY_ADDRESS || "0xc84a1D9044Ceb74EC8C17FfD465f1af6Fe0e53DF",
   tokenId: 0,
   callData: "0xc87b56dd0000000000000000000000000000000000000000000000000000000000000000",
   cacheKey: "utkulabs:week1:trophy",
@@ -80,7 +91,8 @@ export const WEEK1_CONFIG = {
  */
 export const WEEK2_CONFIG = {
   ...SEPOLIA,
-  contractAddress: "0x86a531F9Fa82E220B28c854C900178c37CFC9ab5",
+  contractAddress:
+    NEXT_PUBLIC_WEEK2_COFFEE_ADDRESS || "0x86a531F9Fa82E220B28c854C900178c37CFC9ab5",
   defaultAmountEth: "0.001",
 } as const
 
@@ -89,8 +101,10 @@ export const WEEK2_CONFIG = {
  */
 export const WEEK3_CONFIG = {
   ...POLYGON_AMOY,
-  contractAddress: "0x7930FD2407eAc725319F85b693867f0aa81e6b7E",
-  deployerAddress: "0x35313FB0881423D798BcFA3b68741c512Df31559", // Deployer address to show NFTs when wallet not connected
+  contractAddress:
+    NEXT_PUBLIC_WEEK3_CHAIN_BATTLES_ADDRESS || "0x7930FD2407eAc725319F85b693867f0aa81e6b7E",
+  deployerAddress:
+    NEXT_PUBLIC_WEEK3_DEPLOYER_ADDRESS || "0x35313FB0881423D798BcFA3b68741c512Df31559", // Deployer address to show NFTs when wallet not connected
   cooldownSeconds: 60,
   defaultTokenId: 1, // Default token ID to try loading
 } as const
@@ -100,7 +114,8 @@ export const WEEK3_CONFIG = {
  */
 export const WEEK5_BULLBEAR_CONFIG = {
   ...SEPOLIA,
-  contractAddress: "0xde928aF3f321D040bcC0795309Ae88Fd8bEd5A4E",
+  contractAddress:
+    NEXT_PUBLIC_WEEK5_BULLBEAR_ADDRESS || "0xde928aF3f321D040bcC0795309Ae88Fd8bEd5A4E",
   tokenId: 1,
 } as const
 
@@ -109,8 +124,10 @@ export const WEEK5_BULLBEAR_CONFIG = {
  */
 export const WEEK6_CONFIG = {
   ...SEPOLIA,
-  contractAddress: NEXT_PUBLIC_WEEK6_STAKER_ADDRESS || ZERO_ADDRESS,
+  contractAddress:
+    NEXT_PUBLIC_WEEK6_STAKER_ADDRESS || "0xC6F0165815aaf167614241Ea757Ac3D070c62C32",
   exampleExternalContractAddress:
-    NEXT_PUBLIC_WEEK6_EXAMPLE_EXTERNAL_CONTRACT_ADDRESS || ZERO_ADDRESS,
+    NEXT_PUBLIC_WEEK6_EXAMPLE_EXTERNAL_CONTRACT_ADDRESS ||
+    "0x5F3a77a6a37102b28E5eDe0908aCF966DEA0a55f",
   defaultStakeEth: "0.01",
 } as const

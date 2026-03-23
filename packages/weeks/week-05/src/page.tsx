@@ -95,9 +95,9 @@ export default function Week05Page() {
   return (
     <div>
       <div className="mb-8">
-        <span className="inline-block px-4 py-1 rounded-full bg-white/10 text-sm font-semibold mb-4">
+        <Badge variant="outline" className="mb-4">
           Week 5
-        </span>
+        </Badge>
         <h1 className="text-4xl font-bold mb-3">Bull & Bear NFT</h1>
         <p className="text-muted-foreground">
           A dynamic NFT that flips between Bull and Bear based on the live BTC/USD price, updated
@@ -108,7 +108,7 @@ export default function Week05Page() {
 
       <div className="grid md:grid-cols-2 gap-6 mb-8">
         <BullBearDisplay />
-        <Card className="glass p-6">
+        <Card variant="glass" className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-bold">Contract</h3>
             <Badge variant="outline">Sepolia</Badge>
@@ -147,7 +147,7 @@ export default function Week05Page() {
         </Card>
       </div>
 
-      <Card className="glass p-6">
+      <Card variant="glass" className="p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-bold">Mint</h3>
           <Badge variant="outline">safeMint(address)</Badge>

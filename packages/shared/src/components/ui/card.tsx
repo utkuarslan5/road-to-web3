@@ -27,6 +27,8 @@ const cardVariants = cva(
           "bg-card border-week4/30 hover:border-week4/60 hover:shadow-glow-week4",
         // Ghost: Minimal border
         ghost: "bg-transparent border-border/50 hover:border-border",
+        // Glass: Shared elevated surface used by app-level pages
+        glass: "glass bg-card/85 border-border/70 shadow-arcade",
       },
     },
     defaultVariants: {
@@ -50,28 +52,60 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
 )
 Card.displayName = "Card"
 
+const cardHeaderVariants = cva("flex flex-col", {
+  variants: {
+    spacing: {
+      default: "gap-1.5",
+      roomy: "gap-4",
+    },
+    padding: {
+      default: "p-6",
+      roomy: "p-8",
+      flush: "p-0",
+    },
+  },
+  defaultVariants: {
+    spacing: "default",
+    padding: "default",
+  },
+})
+
 const CardHeader = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
+  React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof cardHeaderVariants>
+>(({ className, spacing, padding, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex flex-col space-y-1.5 p-6", className)}
+    className={cn(cardHeaderVariants({ spacing, padding }), className)}
     {...props}
   />
 ))
 CardHeader.displayName = "CardHeader"
 
+const cardTitleVariants = cva(
+  "font-display font-semibold leading-none tracking-tight",
+  {
+    variants: {
+      size: {
+        sm: "text-base",
+        default: "text-xl",
+        lg: "text-2xl",
+        xl: "text-3xl",
+      },
+    },
+    defaultVariants: {
+      size: "lg",
+    },
+  }
+)
+
 const CardTitle = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
+  React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof cardTitleVariants>
+>(({ className, size, ...props }, ref) => (
   <h3
     ref={ref}
-    className={cn(
-      "font-display text-2xl font-semibold leading-none tracking-tight",
-      className
-    )}
+    className={cn(cardTitleVariants({ size }), className)}
     {...props}
   />
 ))
@@ -89,11 +123,28 @@ const CardDescription = React.forwardRef<
 ))
 CardDescription.displayName = "CardDescription"
 
+const cardContentVariants = cva("", {
+  variants: {
+    padding: {
+      default: "p-6 pt-0",
+      roomy: "p-8 pt-0",
+      flush: "p-0",
+    },
+  },
+  defaultVariants: {
+    padding: "default",
+  },
+})
+
 const CardContent = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
+  React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof cardContentVariants>
+>(({ className, padding, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(cardContentVariants({ padding }), className)}
+    {...props}
+  />
 ))
 CardContent.displayName = "CardContent"
 

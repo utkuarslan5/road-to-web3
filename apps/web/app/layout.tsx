@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import "./globals.css"
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from "@road/shared"
 
 export const metadata: Metadata = {
   title: "Road to Web3 · Trophy Collection",

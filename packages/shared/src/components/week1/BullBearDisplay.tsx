@@ -56,6 +56,7 @@ export function BullBearDisplay() {
               src={imageUrl}
               alt={metadata?.name || "BullBear NFT"}
               fill
+              priority
               className="object-cover transition-transform duration-500 group-hover:scale-105"
               unoptimized
             />

@@ -84,7 +84,7 @@ export function CoffeeForm() {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="coffee-name" className="font-mono text-xs tracking-wider uppercase">
+            <Label htmlFor="coffee-name" variant="eyebrow">
               Your Name
             </Label>
             <Input
@@ -92,12 +92,12 @@ export function CoffeeForm() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Anonymous Supporter"
-              className="border-week2/30 focus-visible:border-week2 focus-visible:ring-week2/20 focus-visible:shadow-glow-week2"
+              variant="week2"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="coffee-message" className="font-mono text-xs tracking-wider uppercase">
+            <Label htmlFor="coffee-message" variant="eyebrow">
               Message
             </Label>
             <Textarea
@@ -106,12 +106,12 @@ export function CoffeeForm() {
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Leave an encouraging message..."
               rows={3}
-              className="border-week2/30 focus-visible:border-week2 focus-visible:ring-week2/20 focus-visible:shadow-glow-week2"
+              variant="week2"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="coffee-amount" className="font-mono text-xs tracking-wider uppercase">
+            <Label htmlFor="coffee-amount" variant="eyebrow">
               Amount (ETH)
             </Label>
             <Input
@@ -121,7 +121,8 @@ export function CoffeeForm() {
               step="0.0001"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="font-mono border-week2/30 focus-visible:border-week2 focus-visible:ring-week2/20 focus-visible:shadow-glow-week2"
+              variant="week2"
+              className="font-mono"
             />
           </div>
 

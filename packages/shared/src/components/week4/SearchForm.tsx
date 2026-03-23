@@ -37,7 +37,7 @@ export function SearchForm({ onSearch, loading }: SearchFormProps) {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="wallet-address" className="font-mono text-xs tracking-wider uppercase">
+            <Label htmlFor="wallet-address" variant="eyebrow">
               Wallet Address
             </Label>
             <Input
@@ -45,7 +45,8 @@ export function SearchForm({ onSearch, loading }: SearchFormProps) {
               value={walletAddress}
               onChange={(e) => setWalletAddress(e.target.value)}
               placeholder="0x..."
-              className="font-mono border-week4/30 focus-visible:border-week4 focus-visible:ring-week4/20"
+              variant="week4"
+              className="font-mono"
             />
             <p className="font-mono text-xs text-muted-foreground">
               Filter by wallet owner (optional)
@@ -53,7 +54,7 @@ export function SearchForm({ onSearch, loading }: SearchFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="collection-address" className="font-mono text-xs tracking-wider uppercase">
+            <Label htmlFor="collection-address" variant="eyebrow">
               Collection Address
             </Label>
             <Input
@@ -61,7 +62,8 @@ export function SearchForm({ onSearch, loading }: SearchFormProps) {
               value={collectionAddress}
               onChange={(e) => setCollectionAddress(e.target.value)}
               placeholder="0x..."
-              className="font-mono border-week4/30 focus-visible:border-week4 focus-visible:ring-week4/20"
+              variant="week4"
+              className="font-mono"
             />
             <p className="font-mono text-xs text-muted-foreground">
               Filter by collection (optional)

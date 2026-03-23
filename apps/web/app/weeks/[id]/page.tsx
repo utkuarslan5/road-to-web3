@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation"
 import type { ComponentType } from "react"
-import { AppShell } from "@/components/layout/AppShell"
-import { Badge, Card } from "@/components/ui"
+import { AppShell, Badge, Card } from "@road/shared"
 import { getWeekModule } from "@/lib/week-registry"
 
 export async function generateStaticParams() {
@@ -43,11 +42,13 @@ export default async function WeekRoutePage({
       </div>
       <WeekPage />
       {numericId === 6 && weekModule.status === "stub" && (
-        <Card className="glass p-6 mt-8 border-dashed">
-          <h3 className="text-lg font-semibold mb-2">Implementation Scaffold Ready</h3>
-          <p className="text-muted-foreground text-sm">
-            This week is set up with canonical routing, runbook commands, and contract package scaffold.
-          </p>
+        <Card variant="glass" className="mt-8 border-dashed">
+          <div className="p-6">
+            <h3 className="text-lg font-semibold mb-2">Implementation Scaffold Ready</h3>
+            <p className="text-muted-foreground text-sm">
+              This week is set up with canonical routing, runbook commands, and contract package scaffold.
+            </p>
+          </div>
         </Card>
       )}
     </AppShell>

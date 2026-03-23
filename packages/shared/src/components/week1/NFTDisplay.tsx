@@ -56,6 +56,7 @@ export function NFTDisplay() {
               src={imageUrl}
               alt={metadata?.name || "NFT"}
               fill
+              priority
               className="object-cover transition-transform duration-500 group-hover:scale-105"
               unoptimized
             />

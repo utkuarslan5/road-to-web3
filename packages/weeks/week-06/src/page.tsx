@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, type ChangeEvent, type FormEvent } from "react"
+import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react"
 import Link from "next/link"
 import { ethers } from "ethers"
 import {
@@ -27,6 +27,10 @@ import {
   Input,
   Label,
   STAKER_ABI,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
   WEEK6_CONFIG,
   ZERO_ADDRESS,
   extractErrorMessage,
@@ -46,12 +50,10 @@ type Week6Snapshot = {
   completedRounds: bigint
   rewardPerBlock: bigint
   secondsPerBlock: bigint
-  reward: bigint
   withdrawableAmount: bigint
   contractBalance: bigint
   exampleExternalContract: string
   exampleContractReady: boolean
-  exampleCompleted: boolean
   exampleCompletedAt: bigint
   exampleCompletionCount: bigint
   exampleTotalReceived: bigint
@@ -161,7 +163,6 @@ export default function Week06Page() {
           completedRounds,
           rewardPerBlock,
           secondsPerBlock,
-          reward,
           withdrawableAmount,
         ] = await Promise.all([
           stakerContract.exampleExternalContract() as Promise<string>,
@@ -174,11 +175,9 @@ export default function Week06Page() {
           stakerContract.completedRounds() as Promise<bigint>,
           stakerContract.REWARD_PER_BLOCK() as Promise<bigint>,
           stakerContract.SECONDS_PER_BLOCK() as Promise<bigint>,
-          stakerContract.calculateReward() as Promise<bigint>,
           stakerContract.withdrawableAmount() as Promise<bigint>,
         ])
 
-        let exampleCompleted = false
         let exampleCompletedAt = 0n
         let exampleCompletionCount = 0n
         let exampleTotalReceived = 0n
@@ -192,7 +191,6 @@ export default function Week06Page() {
           if (exampleCode !== "0x") {
             exampleContractReady = true
             const exampleContract = getContract(resolvedExampleAddress, EXAMPLE_EXTERNAL_CONTRACT_ABI, provider)
-            exampleCompleted = await exampleContract.completed()
             exampleCompletedAt = await exampleContract.completedAt()
             exampleCompletionCount = await exampleContract.completionCount()
             exampleTotalReceived = await exampleContract.totalReceived()
@@ -210,12 +208,10 @@ export default function Week06Page() {
             completedRounds,
             rewardPerBlock,
             secondsPerBlock,
-            reward,
             withdrawableAmount,
             contractBalance,
             exampleExternalContract: resolvedExampleAddress,
             exampleContractReady,
-            exampleCompleted,
             exampleCompletedAt,
             exampleCompletionCount,
             exampleTotalReceived,
@@ -239,7 +235,6 @@ export default function Week06Page() {
   const activeCycle = snapshot ? snapshot.stakedAmount > 0n : false
   const stakeDeadline = snapshot ? Number(snapshot.stakeDeadline) : 0
   const withdrawDeadline = snapshot ? Number(snapshot.withdrawDeadline) : 0
-  const stakeWindowOpen = snapshot ? !activeCycle : false
   const withdrawWindowOpen = snapshot ? activeCycle && now >= stakeDeadline && now < withdrawDeadline : false
   const lockWindowOpen = snapshot ? activeCycle && now >= withdrawDeadline : false
   const hasStake = activeCycle
@@ -272,6 +267,64 @@ export default function Week06Page() {
     : lockWindowOpen
     ? "Lock ready"
     : "Stake in progress"
+
+  const phase = !snapshot
+    ? "unavailable"
+    : !activeCycle
+    ? "open"
+    : withdrawWindowOpen
+    ? "withdraw"
+    : lockWindowOpen
+    ? "lock"
+    : "staked"
+
+  const primaryAction = useMemo(() => {
+    if (!deployed) {
+      return {
+        key: "none" as const,
+        label: "Deploy contracts first",
+        helper: "Set Week 6 contract addresses in environment and redeploy.",
+      }
+    }
+
+    if (!wallet.isConnected) {
+      return {
+        key: "connect" as const,
+        label: "Connect wallet",
+        helper: "Connect on Sepolia to continue.",
+      }
+    }
+
+    if (canStake) {
+      return {
+        key: "stake" as const,
+        label: "Start next round",
+        helper: "Enter amount, then stake to begin a fresh round.",
+      }
+    }
+
+    if (canWithdraw) {
+      return {
+        key: "withdraw" as const,
+        label: "Withdraw payout",
+        helper: "Current staker can withdraw before lock window.",
+      }
+    }
+
+    if (canLock) {
+      return {
+        key: "lock" as const,
+        label: "Lock remaining funds",
+        helper: "Withdraw window is closed; lock funds to reset cycle.",
+      }
+    }
+
+    return {
+      key: "none" as const,
+      label: "Awaiting next state",
+      helper: "Primary action unlocks automatically when conditions are met.",
+    }
+  }, [deployed, wallet.isConnected, canStake, canWithdraw, canLock])
   const connectedRole = !wallet.isConnected
     ? "Wallet not connected"
     : isCurrentStaker
@@ -288,6 +341,9 @@ export default function Week06Page() {
       ? "Active round is funded for withdrawal"
       : "Active round is underfunded"
     : "Contract is idle and ready for a new staker"
+  const stakeCountdown = snapshot ? formatCountdown(stakeDeadline - now) : "n/a"
+  const withdrawCountdown = snapshot ? formatCountdown(withdrawDeadline - now) : "n/a"
+  const lockCountdown = snapshot ? formatCountdown(withdrawDeadline - now) : "n/a"
   const nextTransitionLabel = !snapshot
     ? "Waiting for on-chain read"
     : !activeCycle
@@ -297,6 +353,14 @@ export default function Week06Page() {
     : lockWindowOpen
     ? "Lock window is open now"
     : `Withdraw window opens in ${stakeCountdown}`
+  const timelineStepIndex = !wallet.isConnected
+    ? 0
+    : phase === "withdraw"
+    ? 2
+    : phase === "lock"
+    ? 3
+    : 1
+  const timelineProgress = `${Math.round((timelineStepIndex / 3) * 100)}%`
 
   async function runWalletAction(
     action: "stake" | "withdraw" | "lock",
@@ -334,9 +398,7 @@ export default function Week06Page() {
     }
   }
 
-  async function handleStakeSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-
+  async function handleStake() {
     if (!canStake) {
       toast({
         title: "Stake unavailable",
@@ -389,6 +451,11 @@ export default function Week06Page() {
     )
   }
 
+  async function handleStakeSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    await handleStake()
+  }
+
   async function handleWithdraw() {
     if (!canWithdraw) {
       toast({
@@ -431,10 +498,6 @@ export default function Week06Page() {
     )
   }
 
-  const stakeCountdown = snapshot ? formatCountdown(stakeDeadline - now) : "n/a"
-  const withdrawCountdown = snapshot ? formatCountdown(withdrawDeadline - now) : "n/a"
-  const lockCountdown = snapshot ? formatCountdown(withdrawDeadline - now) : "n/a"
-
   return (
     <div>
       <div className="mb-8">
@@ -457,18 +520,18 @@ export default function Week06Page() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mb-8">
-        <Card className="glass p-6">
-          <CardTitle className="text-base mb-3">Contract Status</CardTitle>
+        <Card variant="glass" className="p-6">
+          <CardTitle size="sm" className="mb-3">Contract Status</CardTitle>
           <div className="flex flex-col gap-2 text-sm">
             <Badge variant={deployed ? "success" : "destructive"} className="w-fit">
-              {deployed ? cycleStatus : "Unavailable"}
+              {deployed ? "Deployed" : "Unavailable"}
             </Badge>
             <p className="text-muted-foreground">{contractHealth}</p>
           </div>
         </Card>
 
-        <Card className="glass p-6">
-          <CardTitle className="text-base mb-3">Connected Wallet</CardTitle>
+        <Card variant="glass" className="p-6">
+          <CardTitle size="sm" className="mb-3">Connected Wallet</CardTitle>
           <div className="flex flex-col gap-2 text-sm">
             <Badge variant={isCurrentStaker ? "default" : wallet.isConnected ? "secondary" : "outline"} className="w-fit">
               {connectedRole}
@@ -479,8 +542,8 @@ export default function Week06Page() {
           </div>
         </Card>
 
-        <Card className="glass p-6">
-          <CardTitle className="text-base mb-3">Reward Pool</CardTitle>
+        <Card variant="glass" className="p-6">
+          <CardTitle size="sm" className="mb-3">Reward Pool</CardTitle>
           <div className="flex flex-col gap-2 text-sm">
             <p className="font-mono text-2xl">{snapshot ? `${formatEth(rewardPoolBalance)} ETH` : "—"}</p>
             <p className="text-muted-foreground">
@@ -495,8 +558,8 @@ export default function Week06Page() {
           </div>
         </Card>
 
-        <Card className="glass p-6">
-          <CardTitle className="text-base mb-3">Next Transition</CardTitle>
+        <Card variant="glass" className="p-6">
+          <CardTitle size="sm" className="mb-3">Next Transition</CardTitle>
           <div className="flex flex-col gap-2 text-sm">
             <p className="font-medium">{nextTransitionLabel}</p>
             <p className="text-muted-foreground">
@@ -511,7 +574,7 @@ export default function Week06Page() {
       </div>
 
       {(deploymentWarning || error) && (
-        <Card className="glass p-6 mb-8 border-dashed">
+        <Card variant="glass" className="p-6 mb-8 border-dashed">
           <div className="flex items-start gap-3">
             <ShieldAlert className="h-5 w-5 mt-1 text-destructive" />
             <div className="space-y-1">
@@ -522,9 +585,71 @@ export default function Week06Page() {
         </Card>
       )}
 
+      <Card variant="glass" className="p-6 mb-8">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+          <div>
+            <p className="text-sm text-muted-foreground">Current phase</p>
+            <p className="text-lg font-semibold">{cycleStatus}</p>
+          </div>
+          <Badge variant={phase === "withdraw" ? "secondary" : phase === "lock" ? "destructive" : "default"}>
+            {phase.toUpperCase()}
+          </Badge>
+        </div>
+
+        <div className="grid sm:grid-cols-3 gap-3 mb-5">
+          <div className="rounded-lg border border-border/60 bg-background/40 p-3">
+            <p className="text-xs text-muted-foreground mb-1">Current stake</p>
+            <p className="font-mono">{snapshot ? `${formatEth(snapshot.stakedAmount)} ETH` : "—"}</p>
+          </div>
+          <div className="rounded-lg border border-border/60 bg-background/40 p-3">
+            <p className="text-xs text-muted-foreground mb-1">Withdrawable</p>
+            <p className="font-mono">{snapshot ? `${formatEth(snapshot.withdrawableAmount)} ETH` : "—"}</p>
+          </div>
+          <div className="rounded-lg border border-border/60 bg-background/40 p-3">
+            <p className="text-xs text-muted-foreground mb-1">Contract balance</p>
+            <p className="font-mono">{snapshot ? `${formatEth(snapshot.contractBalance)} ETH` : "—"}</p>
+          </div>
+        </div>
+
+        <div className="mb-5">
+          <div className="relative h-2 w-full rounded-full bg-background/60 border border-border/60 overflow-hidden">
+            <div
+              className="absolute inset-y-0 left-0 bg-primary/80 transition-all duration-500"
+              style={{ width: timelineProgress }}
+            />
+          </div>
+          <div className="grid sm:grid-cols-4 gap-2 mt-3 text-xs font-mono">
+            <div className={`rounded-md border px-2 py-2 text-center ${timelineStepIndex >= 0 ? "border-primary/60 bg-primary/10" : "border-border/60 bg-background/40"}`}>Connect</div>
+            <div className={`rounded-md border px-2 py-2 text-center ${timelineStepIndex >= 1 ? "border-primary/60 bg-primary/10" : "border-border/60 bg-background/40"}`}>Stake</div>
+            <div className={`rounded-md border px-2 py-2 text-center ${timelineStepIndex >= 2 ? "border-primary/60 bg-primary/10" : "border-border/60 bg-background/40"}`}>Withdraw</div>
+            <div className={`rounded-md border px-2 py-2 text-center ${timelineStepIndex >= 3 ? "border-primary/60 bg-primary/10" : "border-border/60 bg-background/40"}`}>Lock</div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            onClick={() => {
+              if (primaryAction.key === "connect") {
+                void wallet.connect()
+              } else if (primaryAction.key === "stake") {
+                void handleStake()
+              } else if (primaryAction.key === "withdraw") {
+                void handleWithdraw()
+              } else if (primaryAction.key === "lock") {
+                void handleLockFunds()
+              }
+            }}
+            disabled={pendingAction !== null || primaryAction.key === "none" || wallet.isConnecting}
+          >
+            {pendingAction ? "Processing..." : primaryAction.label}
+          </Button>
+          <span className="text-sm text-muted-foreground">{primaryAction.helper}</span>
+        </div>
+      </Card>
+
       <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-6 mb-8">
-        <Card className="glass p-0 overflow-hidden">
-          <CardHeader className="p-6 border-b border-border/50">
+        <Card variant="glass" className="overflow-hidden">
+          <CardHeader className="border-b border-border/50">
             <CardTitle className="flex items-center gap-2">
               <Banknote className="h-5 w-5" />
               Stake ETH
@@ -533,10 +658,10 @@ export default function Week06Page() {
               Any visitor can start the next round when no stake is active. After a withdraw or lock, the contract resets and the next wallet can participate.
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-6">
+          <CardContent>
             <form onSubmit={handleStakeSubmit} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="stake-amount" className="font-mono text-xs tracking-wider uppercase">
+                <Label htmlFor="stake-amount" variant="eyebrow">
                   Amount (ETH)
                 </Label>
                 <Input
@@ -555,7 +680,7 @@ export default function Week06Page() {
               <div className="grid sm:grid-cols-3 gap-3">
                 <Button
                   type="submit"
-                  disabled={!deployed || pendingAction === "stake" || !canStake}
+                  disabled={!deployed || pendingAction === "stake" || !canStake || primaryAction.key !== "stake"}
                   className="w-full"
                 >
                   {pendingAction === "stake" ? (
@@ -580,7 +705,7 @@ export default function Week06Page() {
                   type="button"
                   variant="secondary"
                   onClick={handleWithdraw}
-                  disabled={!deployed || pendingAction === "withdraw" || !canWithdraw}
+                  disabled={!deployed || pendingAction === "withdraw" || !canWithdraw || primaryAction.key !== "withdraw"}
                   className="w-full"
                 >
                   {pendingAction === "withdraw" ? (
@@ -600,7 +725,7 @@ export default function Week06Page() {
                   type="button"
                   variant="outline"
                   onClick={handleLockFunds}
-                  disabled={!deployed || pendingAction === "lock" || !canLock}
+                  disabled={!deployed || pendingAction === "lock" || !canLock || primaryAction.key !== "lock"}
                   className="w-full"
                 >
                   {pendingAction === "lock" ? (
@@ -617,196 +742,230 @@ export default function Week06Page() {
                 </Button>
               </div>
 
-              <div className="rounded-lg border border-border/60 bg-background/40 p-4 text-sm text-muted-foreground">
-                <p>Wallet: {wallet.isConnected ? "Connected" : "Not connected"}</p>
-                <p>Round status: {cycleStatus}</p>
-                <p>Next stake: {stakeWindowOpen ? "open to any wallet" : "waiting for active round to finish"}</p>
-                <p>Withdraw window: {withdrawWindowOpen ? `open for ${withdrawCountdown}` : activeCycle ? (lockWindowOpen ? "closed" : `opens in ${stakeCountdown}`) : "n/a"}</p>
-                <p>Withdrawal funding: {snapshot ? (activeCycle ? (withdrawFunded ? "ready" : "insufficient contract balance") : "reward pool idle") : "loading"}</p>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                One primary action is highlighted based on the current phase. Secondary actions unlock automatically when eligible.
+              </p>
             </form>
           </CardContent>
         </Card>
 
         <div className="space-y-6">
-          <Card className="glass p-6">
-            <div className="flex items-center justify-between gap-3 mb-4">
-              <CardTitle className="text-xl">Live State</CardTitle>
-              <Button type="button" variant="ghost" size="sm" onClick={() => setRefreshKey((prev: number) => prev + 1)}>
-                <RefreshCw className="h-4 w-4" />
-                Refresh
-              </Button>
-            </div>
-            <div className="space-y-4 text-sm">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Cycle</span>
-                <Badge variant={isLoading ? "secondary" : !activeCycle ? "success" : withdrawWindowOpen ? "secondary" : lockWindowOpen ? "destructive" : "default"}>
-                  {cycleStatus}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Staker</span>
-                <span className="font-mono">{snapshot && !isZeroAddress(snapshot.staker) ? truncateAddress(snapshot.staker) : "Open round"}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Staked amount</span>
-                <span className="font-mono">{snapshot ? `${formatEth(snapshot.stakedAmount)} ETH` : "—"}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Withdrawable</span>
-                <span className="font-mono">{snapshot ? `${formatEth(snapshot.withdrawableAmount)} ETH` : "—"}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Contract balance</span>
-                <span className="font-mono">{snapshot ? `${formatEth(snapshot.contractBalance)} ETH` : "—"}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Reward pool only</span>
-                <span className="font-mono">{snapshot ? `${formatEth(rewardPoolBalance)} ETH` : "—"}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Reward per block</span>
-                <span className="font-mono">{snapshot ? `${formatEth(snapshot.rewardPerBlock)} ETH` : "—"}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Completed rounds</span>
-                <span className="font-mono">{formatBigint(snapshot?.completedRounds)}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Payout funding</span>
-                <Badge variant={!snapshot ? "secondary" : withdrawFunded || !activeCycle ? "success" : "destructive"}>
-                  {!snapshot ? "Loading" : !activeCycle ? "Idle" : withdrawFunded ? "Funded" : "Underfunded"}
-                </Badge>
-              </div>
-            </div>
-          </Card>
+          <Tabs defaultValue="overview" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="advanced">Advanced</TabsTrigger>
+            </TabsList>
 
-          <Card className="glass p-6">
-            <CardTitle className="text-xl mb-4">Live Timers</CardTitle>
-            <div className="flex flex-col gap-4 text-sm">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Stake window</span>
-                <span className="font-mono">
-                  {!snapshot ? "—" : !activeCycle ? "Open now" : `Closes in ${stakeCountdown}`}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Withdraw window</span>
-                <span className="font-mono">
-                  {!snapshot
-                    ? "—"
-                    : !activeCycle
-                    ? "Starts after next stake"
-                    : withdrawWindowOpen
-                    ? `Open for ${withdrawCountdown}`
-                    : lockWindowOpen
-                    ? "Closed"
-                    : `Opens in ${stakeCountdown}`}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Lock window</span>
-                <span className="font-mono">
-                  {!snapshot
-                    ? "—"
-                    : !activeCycle
-                    ? "Starts after next stake"
-                    : lockWindowOpen
-                    ? "Open now"
-                    : `Opens in ${lockCountdown}`}
-                </span>
-              </div>
-              <div className="rounded-lg border border-border/60 bg-background/40 p-4 text-muted-foreground">
-                {!snapshot
-                  ? "Waiting for contract timers."
-                  : !activeCycle
-                  ? "No active round. The next visitor can stake immediately and start both timers."
-                  : `Stake deadline: ${formatTimestamp(snapshot.stakeDeadline)}. Withdraw deadline: ${formatTimestamp(snapshot.withdrawDeadline)}.`}
-              </div>
-            </div>
-          </Card>
+            <TabsContent value="overview" className="space-y-6">
+              <Card variant="glass" className="p-6">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <CardTitle size="default">Live State</CardTitle>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setRefreshKey((prev: number) => prev + 1)}>
+                    <RefreshCw className="h-4 w-4" />
+                    Refresh
+                  </Button>
+                </div>
+                <div className="space-y-4 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Cycle</span>
+                    <Badge variant={isLoading ? "secondary" : !activeCycle ? "success" : withdrawWindowOpen ? "secondary" : lockWindowOpen ? "destructive" : "default"}>
+                      {cycleStatus}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Staker</span>
+                    <span className="font-mono">{snapshot && !isZeroAddress(snapshot.staker) ? truncateAddress(snapshot.staker) : "Open round"}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Staked amount</span>
+                    <span className="font-mono">{snapshot ? `${formatEth(snapshot.stakedAmount)} ETH` : "—"}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Withdrawable</span>
+                    <span className="font-mono">{snapshot ? `${formatEth(snapshot.withdrawableAmount)} ETH` : "—"}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Contract balance</span>
+                    <span className="font-mono">{snapshot ? `${formatEth(snapshot.contractBalance)} ETH` : "—"}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Payout funding</span>
+                    <Badge variant={!snapshot ? "secondary" : withdrawFunded || !activeCycle ? "success" : "destructive"}>
+                      {!snapshot ? "Loading" : !activeCycle ? "Idle" : withdrawFunded ? "Funded" : "Underfunded"}
+                    </Badge>
+                  </div>
+                </div>
+              </Card>
 
-          <Card className="glass p-6">
-            <CardTitle className="text-xl mb-4">Contract Details</CardTitle>
-            <div className="space-y-4 text-sm">
-              <div>
-                <p className="text-muted-foreground mb-1">Staker contract</p>
-                {deployed ? (
-                  <Link
-                    href={`${WEEK6_CONFIG.explorer}/address/${WEEK6_CONFIG.contractAddress}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="font-mono inline-flex items-center gap-1 hover:text-primary transition-colors"
-                  >
-                    {truncateAddress(WEEK6_CONFIG.contractAddress)}
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </Link>
-                ) : (
-                  <p className="font-mono text-muted-foreground">0x0000000000000000000000000000000000000000</p>
-                )}
-              </div>
-              <div>
-                <p className="text-muted-foreground mb-1">External contract</p>
-                {snapshot && snapshot.exampleContractReady ? (
-                  <Link
-                    href={`${WEEK6_CONFIG.explorer}/address/${snapshot.exampleExternalContract}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="font-mono inline-flex items-center gap-1 hover:text-primary transition-colors"
-                  >
-                    {truncateAddress(snapshot.exampleExternalContract)}
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </Link>
-                ) : (
-                  <p className="text-muted-foreground">
-                    {snapshot && !isZeroAddress(snapshot.exampleExternalContract) ? "Missing bytecode" : "Not configured yet"}
-                  </p>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-muted-foreground mb-1">Stake deadline</p>
-                  <p className="font-mono text-xs">{snapshot && activeCycle ? formatTimestamp(snapshot.stakeDeadline) : "Starts on next stake"}</p>
+              <Card variant="glass" className="p-6">
+                <CardTitle size="default" className="mb-4">Live Timers</CardTitle>
+                <div className="flex flex-col gap-4 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Stake window</span>
+                    <span className="font-mono">
+                      {!snapshot ? "—" : !activeCycle ? "Open now" : `Closes in ${stakeCountdown}`}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Withdraw window</span>
+                    <span className="font-mono">
+                      {!snapshot
+                        ? "—"
+                        : !activeCycle
+                        ? "Starts after next stake"
+                        : withdrawWindowOpen
+                        ? `Open for ${withdrawCountdown}`
+                        : lockWindowOpen
+                        ? "Closed"
+                        : `Opens in ${stakeCountdown}`}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Lock window</span>
+                    <span className="font-mono">
+                      {!snapshot
+                        ? "—"
+                        : !activeCycle
+                        ? "Starts after next stake"
+                        : lockWindowOpen
+                        ? "Open now"
+                        : `Opens in ${lockCountdown}`}
+                    </span>
+                  </div>
+                  <div className="rounded-lg border border-border/60 bg-background/40 p-4 text-muted-foreground">
+                    {!snapshot
+                      ? "Waiting for contract timers."
+                      : !activeCycle
+                      ? "No active round. The next visitor can stake immediately and start both timers."
+                      : `Stake deadline: ${formatTimestamp(snapshot.stakeDeadline)}. Withdraw deadline: ${formatTimestamp(snapshot.withdrawDeadline)}.`}
+                  </div>
                 </div>
-                <div>
-                  <p className="text-muted-foreground mb-1">Withdraw deadline</p>
-                  <p className="font-mono text-xs">{snapshot && activeCycle ? formatTimestamp(snapshot.withdrawDeadline) : "Starts on next stake"}</p>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="advanced" className="space-y-6">
+              <Card variant="glass" className="p-6">
+                <CardTitle size="default" className="mb-4">Contract Details</CardTitle>
+                <div className="space-y-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground mb-1">Staker contract</p>
+                    {deployed ? (
+                      <Link
+                        href={`${WEEK6_CONFIG.explorer}/address/${WEEK6_CONFIG.contractAddress}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-mono inline-flex items-center gap-1 hover:text-primary transition-colors"
+                      >
+                        {truncateAddress(WEEK6_CONFIG.contractAddress)}
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </Link>
+                    ) : (
+                      <p className="font-mono text-muted-foreground">0x0000000000000000000000000000000000000000</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground mb-1">External contract</p>
+                    {snapshot && snapshot.exampleContractReady ? (
+                      <Link
+                        href={`${WEEK6_CONFIG.explorer}/address/${snapshot.exampleExternalContract}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-mono inline-flex items-center gap-1 hover:text-primary transition-colors"
+                      >
+                        {truncateAddress(snapshot.exampleExternalContract)}
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </Link>
+                    ) : (
+                      <p className="text-muted-foreground">
+                        {snapshot && !isZeroAddress(snapshot.exampleExternalContract) ? "Missing bytecode" : "Not configured yet"}
+                      </p>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-muted-foreground mb-1">Stake deadline</p>
+                      <p className="font-mono text-xs">{snapshot && activeCycle ? formatTimestamp(snapshot.stakeDeadline) : "Starts on next stake"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground mb-1">Withdraw deadline</p>
+                      <p className="font-mono text-xs">{snapshot && activeCycle ? formatTimestamp(snapshot.withdrawDeadline) : "Starts on next stake"}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground mb-1">Lock state</p>
+                    <p className="flex items-center gap-2">
+                      {canLock ? <ShieldCheck className="h-4 w-4 text-neon-green" /> : <AlertCircle className="h-4 w-4 text-muted-foreground" />}
+                      {canLock
+                        ? "Funds can be locked into the external contract."
+                        : "Locking requires an active round with a closed withdraw window, a funded contract, and a ready external contract."}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground mb-1">Reward pool status</p>
+                    <p className="flex items-center gap-2">
+                      {snapshot && (withdrawFunded || !activeCycle) ? (
+                        <ShieldCheck className="h-4 w-4 text-neon-green" />
+                      ) : (
+                        <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                      )}
+                      {snapshot
+                        ? activeCycle
+                          ? withdrawFunded
+                            ? `Reward pool covers the ${formatEth(snapshot.withdrawableAmount)} ETH withdrawal.`
+                            : `Reward pool is short for the ${formatEth(snapshot.withdrawableAmount)} ETH withdrawal.`
+                          : `Idle reward pool balance: ${formatEth(rewardPoolBalance)} ETH.`
+                        : "Loading reward pool status."}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div>
-                <p className="text-muted-foreground mb-1">Lock state</p>
-                <p className="flex items-center gap-2">
-                  {canLock ? <ShieldCheck className="h-4 w-4 text-neon-green" /> : <AlertCircle className="h-4 w-4 text-muted-foreground" />}
-                  {canLock
-                    ? "Funds can be locked into the external contract."
-                    : "Locking requires an active round with a closed withdraw window, a funded contract, and a ready external contract."}
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground mb-1">Reward pool status</p>
-                <p className="flex items-center gap-2">
-                  {snapshot && (withdrawFunded || !activeCycle) ? (
-                    <ShieldCheck className="h-4 w-4 text-neon-green" />
-                  ) : (
-                    <AlertCircle className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  {snapshot
-                    ? activeCycle
-                      ? withdrawFunded
-                        ? `Reward pool covers the ${formatEth(snapshot.withdrawableAmount)} ETH withdrawal.`
-                        : `Reward pool is short for the ${formatEth(snapshot.withdrawableAmount)} ETH withdrawal.`
-                      : `Idle reward pool balance: ${formatEth(rewardPoolBalance)} ETH.`
-                    : "Loading reward pool status."}
-                </p>
-              </div>
-            </div>
-          </Card>
+              </Card>
+
+              <Card variant="glass" className="p-6">
+                <CardTitle size="default" className="mb-4">On-Chain Numbers</CardTitle>
+                <div className="grid sm:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground mb-1">Staked at</p>
+                    <p>{snapshot ? formatTimestamp(snapshot.stakedAt) : "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground mb-1">Withdrawn</p>
+                    <p>{snapshot ? (activeCycle ? (snapshot.withdrawn ? "Yes" : "No") : "Round reset") : "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground mb-1">Reward pool only</p>
+                    <p className="font-mono">{snapshot ? `${formatEth(rewardPoolBalance)} ETH` : "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground mb-1">Reward per block</p>
+                    <p className="font-mono">{snapshot ? `${formatEth(snapshot.rewardPerBlock)} ETH` : "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground mb-1">Seconds per block</p>
+                    <p className="font-mono">{formatBigint(snapshot?.secondsPerBlock)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground mb-1">Completed rounds</p>
+                    <p className="font-mono">{formatBigint(snapshot?.completedRounds)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground mb-1">Example contract</p>
+                    <p>{snapshot ? (snapshot.exampleCompletionCount > 0n ? "Receiving completed rounds" : "Waiting for first lock") : "—"}</p>
+                  </div>
+                </div>
+                {snapshot && snapshot.exampleCompletionCount > 0n && (
+                  <div className="mt-4 rounded-lg border border-border/60 bg-background/40 p-4 text-sm text-muted-foreground">
+                    External contract has received {formatEth(snapshot.exampleTotalReceived)} ETH across {formatBigint(snapshot.exampleCompletionCount)} locked rounds. Last update: {formatTimestamp(snapshot.exampleCompletedAt)}.
+                  </div>
+                )}
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6 mb-8">
-        <Card className="glass p-6">
-          <CardTitle className="text-xl mb-4">How It Works</CardTitle>
+      <div className="mb-8">
+        <Card variant="glass" className="p-6">
+          <CardTitle size="default" className="mb-4">How It Works</CardTitle>
           <ul className="space-y-3 text-sm text-muted-foreground">
             <li className="flex gap-3">
               <ShieldCheck className="h-4 w-4 mt-0.5 text-neon-green shrink-0" />
@@ -821,33 +980,6 @@ export default function Week06Page() {
               If the withdraw window closes first, anyone can lock the remaining balance and the contract resets for the next visitor.
             </li>
           </ul>
-        </Card>
-
-        <Card className="glass p-6">
-          <CardTitle className="text-xl mb-4">On-Chain Numbers</CardTitle>
-          <div className="grid sm:grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-muted-foreground mb-1">Staked at</p>
-              <p>{snapshot ? formatTimestamp(snapshot.stakedAt) : "—"}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground mb-1">Withdrawn</p>
-              <p>{snapshot ? (activeCycle ? (snapshot.withdrawn ? "Yes" : "No") : "Round reset") : "—"}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground mb-1">Seconds per block</p>
-              <p className="font-mono">{formatBigint(snapshot?.secondsPerBlock)}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground mb-1">Example contract</p>
-              <p>{snapshot ? (snapshot.exampleCompletionCount > 0n ? "Receiving completed rounds" : "Waiting for first lock") : "—"}</p>
-            </div>
-          </div>
-          {snapshot && snapshot.exampleCompletionCount > 0n && (
-            <div className="mt-4 rounded-lg border border-border/60 bg-background/40 p-4 text-sm text-muted-foreground">
-              External contract has received {formatEth(snapshot.exampleTotalReceived)} ETH across {formatBigint(snapshot.exampleCompletionCount)} locked rounds. Last update: {formatTimestamp(snapshot.exampleCompletedAt)}.
-            </div>
-          )}
         </Card>
       </div>
     </div>

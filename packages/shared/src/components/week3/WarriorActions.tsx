@@ -211,7 +211,7 @@ export function WarriorActions({
               </div>
 
               <div className="pt-2 border-t border-border">
-                <Label htmlFor="token-input" className="font-mono text-xs tracking-wider uppercase">
+                <Label htmlFor="token-input" variant="eyebrow">
                   View Token
                 </Label>
                 <div className="flex gap-2 mt-2">
@@ -222,7 +222,8 @@ export function WarriorActions({
                     min="1"
                     value={viewTokenId}
                     onChange={(e) => setViewTokenId(e.target.value)}
-                    className="font-mono border-week3/30 focus-visible:border-week3"
+                    variant="week3"
+                    className="font-mono"
                   />
                   <Button
                     onClick={handleView}

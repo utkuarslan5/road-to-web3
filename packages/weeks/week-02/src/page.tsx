@@ -1,15 +1,15 @@
 "use client"
 
 import Link from "next/link"
-import { Card, CoffeeForm, MemoBoard, WEEK2_CONFIG, truncateAddress } from "@road/shared"
+import { Badge, Card, CoffeeForm, MemoBoard, WEEK2_CONFIG, truncateAddress } from "@road/shared"
 
 export default function Week02Page() {
   return (
     <div>
       <div className="mb-8">
-        <span className="inline-block px-4 py-1 rounded-full bg-white/10 text-sm font-semibold mb-4">
+        <Badge variant="outline" className="mb-4">
           Week 2
-        </span>
+        </Badge>
         <h1 className="text-4xl font-bold mb-3">Buy Me a Coffee dApp</h1>
         <p className="text-muted-foreground">
           Interactive tipping contract with on-chain memos - Building real Web3 functionality
@@ -21,7 +21,7 @@ export default function Week02Page() {
         <MemoBoard />
       </div>
 
-      <Card className="glass p-6">
+      <Card variant="glass" className="p-6">
         <h3 className="text-xl font-bold mb-4">Contract Information</h3>
         <div className="grid md:grid-cols-3 gap-4">
           <div>

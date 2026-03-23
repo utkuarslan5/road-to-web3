@@ -59,9 +59,7 @@ export default function Week03Page() {
     <div>
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <span className="inline-block px-4 py-1 rounded-full bg-white/10 text-sm font-semibold">
-            Week 3
-          </span>
+          <Badge variant="outline">Week 3</Badge>
           {wallet.isConnected && wallet.address && (
             <Badge variant="secondary" className="text-sm">
               Connected: {truncateAddress(wallet.address)}
@@ -102,7 +100,7 @@ export default function Week03Page() {
       )}
 
       {!currentTokenId && (
-        <Card className="glass p-6 mb-8">
+        <Card variant="glass" className="p-6 mb-8">
           <div className="text-center py-8">
             <p className="text-muted-foreground">
               Select a warrior from the list above to view details and train
@@ -112,7 +110,7 @@ export default function Week03Page() {
       )}
 
       <div className="grid md:grid-cols-2 gap-6">
-        <Card className="glass p-6">
+        <Card variant="glass" className="p-6">
           <h3 className="text-xl font-bold mb-4">Contract Details</h3>
           <dl className="space-y-3">
             <div>
@@ -143,7 +141,7 @@ export default function Week03Page() {
           </dl>
         </Card>
 
-        <Card className="glass p-6">
+        <Card variant="glass" className="p-6">
           <h3 className="text-xl font-bold mb-4">Features</h3>
           <ul className="space-y-2 text-muted-foreground">
             <li>• Fully on-chain SVG rendering</li>
