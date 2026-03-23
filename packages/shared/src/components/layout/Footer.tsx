@@ -1,6 +1,8 @@
 import { Badge } from "../ui/badge"
 
 export function Footer() {
+  const currentYear = new Date().getFullYear()
+
   return (
     <footer className="w-full py-12 px-4 border-t border-border mt-20 bg-cabinet/50">
       <div className="max-w-7xl mx-auto">
@@ -9,7 +11,7 @@ export function Footer() {
             CREDITS
           </Badge>
           <p className="font-mono text-sm text-muted-foreground">
-            ROAD TO WEB3 &copy; 2025
+            ROAD TO WEB3 &copy; {currentYear}
           </p>
         </div>
 

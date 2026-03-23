@@ -5,7 +5,7 @@ import { Card, CardContent } from "../ui/card"
 import { Badge } from "../ui/badge"
 import { Skeleton } from "../ui/skeleton"
 import { WEEK3_CONFIG, CHAIN_BATTLES_ABI } from "../../lib/config/contracts"
-import { getProvider, getContract } from "../../lib/ethers"
+import { getContract } from "../../lib/ethers"
 import { extractErrorMessage, isContractRevertError } from "../../lib/errors"
 import { ethers } from "ethers"
 import { Swords } from "lucide-react"
@@ -26,7 +26,8 @@ export function WarriorDisplay({ tokenId, refreshKey }: { tokenId: number | null
         setLoading(true)
         setError(null)
 
-        const provider = getProvider() || new ethers.JsonRpcProvider(WEEK3_CONFIG.rpcUrl)
+        // Week 3 reads must stay on Polygon Amoy even if the wallet is connected elsewhere.
+        const provider = new ethers.JsonRpcProvider(WEEK3_CONFIG.rpcUrl)
         const contract = getContract(WEEK3_CONFIG.contractAddress, CHAIN_BATTLES_ABI, provider)
 
         const tokenURI = await contract.tokenURI(tokenId)
