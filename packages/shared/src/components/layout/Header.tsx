@@ -1,9 +1,16 @@
 "use client"
 
+import Link from "next/link"
+import { getHomepageRoadmapItems } from "@road/config"
 import { Card, CardContent } from "../ui/card"
 import { Badge } from "../ui/badge"
 
 export function Header() {
+  const weeks = getHomepageRoadmapItems()
+  const weeksCount = weeks.length
+  const contractsCount = weeks.filter(week => week.status === "ready").length
+  const networksCount = new Set(weeks.flatMap(week => week.networks)).size
+
   return (
     <header className="relative w-full py-20 px-4 overflow-hidden">
       <div className="absolute inset-0 pointer-events-none opacity-30 scanlines" />
@@ -13,24 +20,28 @@ export function Header() {
           PLAYER 1 READY
         </Badge>
 
-        <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-normal mb-4 tracking-tight">
-          <span className="text-foreground">Road to</span>{" "}
-          <span className="text-neon-cyan">Web3</span>
-        </h1>
+        <Link href="/" className="block group">
+          <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-normal mb-4 tracking-tight">
+            <span className="text-foreground">Road to</span>{" "}
+            <span className="text-neon-cyan group-hover:opacity-90 transition-opacity">Web3</span>
+          </h1>
+        </Link>
 
-        <h2 className="font-display text-3xl md:text-5xl lg:text-6xl italic mb-8">
-          <span className="gradient-arcade">Trophy Collection</span>
-        </h2>
+        <Link href="/" className="block group">
+          <h2 className="font-display text-3xl md:text-5xl lg:text-6xl italic mb-8">
+            <span className="gradient-arcade group-hover:opacity-90 transition-opacity">Trophy Collection</span>
+          </h2>
+        </Link>
 
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-16 leading-relaxed">
           A curated showcase of on-chain achievements, smart contracts,
-          and interactive Web3 experiences. Each level unlocks new blockchain skills.
+          and interactive Web3 experiences. Each week unlocks new blockchain skills.
         </p>
 
         <div className="flex flex-wrap justify-center gap-4 md:gap-6">
-          <ScoreCard value="4" label="LEVELS" color="cyan" />
-          <ScoreCard value="3" label="CONTRACTS" color="magenta" />
-          <ScoreCard value="2" label="NETWORKS" color="yellow" />
+          <ScoreCard value={String(weeksCount)} label="WEEKS" color="cyan" />
+          <ScoreCard value={String(contractsCount)} label="CONTRACTS" color="magenta" />
+          <ScoreCard value={String(networksCount)} label="NETWORKS" color="yellow" />
         </div>
       </div>
     </header>
