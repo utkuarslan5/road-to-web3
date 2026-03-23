@@ -1,0 +1,18 @@
+{
+  "name": "@road/week-02",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "echo 'week-02 is source-only'",
+    "lint": "echo 'no week-02 lint step yet'",
+    "test": "echo 'no week-02 tests yet'"
+  },
+  "dependencies": {
+    "@road/config": "workspace:*",
+    "@road/shared": "workspace:*",
+    "react": "^19.2.3"
+  }
+}

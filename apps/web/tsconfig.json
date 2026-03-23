@@ -1,0 +1,77 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./*"
+      ],
+      "@road/config": [
+        "../../packages/config/src/index.ts"
+      ],
+      "@road/shared": [
+        "../../packages/shared/src/index.ts"
+      ],
+      "@road/week-01": [
+        "../../packages/weeks/week-01/src/index.ts"
+      ],
+      "@road/week-02": [
+        "../../packages/weeks/week-02/src/index.ts"
+      ],
+      "@road/week-03": [
+        "../../packages/weeks/week-03/src/index.ts"
+      ],
+      "@road/week-04": [
+        "../../packages/weeks/week-04/src/index.ts"
+      ],
+      "@road/week-05": [
+        "../../packages/weeks/week-05/src/index.ts"
+      ],
+      "@road/week-06": [
+        "../../packages/weeks/week-06/src/index.ts"
+      ],
+      "@road/week-07": [
+        "../../packages/weeks/week-07/src/index.ts"
+      ],
+      "@road/week-08": [
+        "../../packages/weeks/week-08/src/index.ts"
+      ],
+      "@road/week-09": [
+        "../../packages/weeks/week-09/src/index.ts"
+      ],
+      "@road/week-10": [
+        "../../packages/weeks/week-10/src/index.ts"
+      ]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
